@@ -1,3 +1,3 @@
-# Blooket Proxy
+# simple goofy shat
 
-This is a simple Node.js proxy for https://blooketbot.glitch.me/
+peepee poopoo
