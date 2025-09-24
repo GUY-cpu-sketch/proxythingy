@@ -3,20 +3,25 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Blooket Proxy Console</title>
+<title>JS Injector</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<h1>Blooket Proxy</h1>
+<h1>JS Injector</h1>
 
 <div>
-  <input type="text" id="inputBox" placeholder="Type JS here">
-  <button id="sendBtn">Run</button>
+  <input type="text" id="urlInput" placeholder="Enter URL here">
+  <button id="loadBtn">Load URL</button>
+</div>
+
+<div>
+  <input type="text" id="jsInput" placeholder="Type JS to run">
+  <button id="runBtn">Run JS</button>
 </div>
 
 <div id="consoleOutput"></div>
 
-<iframe id="blooketFrame" src="/proxy" style="width:100%; height:80vh;"></iframe>
+<iframe id="targetFrame" style="width:100%; height:80vh;"></iframe>
 
 <script src="script.js"></script>
 </body>
