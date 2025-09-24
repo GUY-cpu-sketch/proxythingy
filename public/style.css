@@ -1,24 +1,14 @@
-/* Reset & base */
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background: #f4f6f9;
   color: #333;
   padding: 20px;
 }
-
 h1 {
   font-size: 1.6rem;
   margin-bottom: 15px;
   color: #2c3e50;
 }
-
-/* Input + buttons */
 input {
   padding: 8px 10px;
   border: 1px solid #ccc;
@@ -26,7 +16,6 @@ input {
   margin-right: 5px;
   width: 280px;
 }
-
 button {
   padding: 8px 14px;
   background: #3498db;
@@ -37,12 +26,9 @@ button {
   cursor: pointer;
   transition: background 0.2s;
 }
-
 button:hover {
   background: #2980b9;
 }
-
-/* Console output */
 #consoleOutput {
   margin-top: 15px;
   padding: 10px;
@@ -55,8 +41,6 @@ button:hover {
   font-size: 0.9rem;
   border: 1px solid #444;
 }
-
-/* Iframe container */
 iframe {
   margin-top: 15px;
   width: 100%;
@@ -65,8 +49,6 @@ iframe {
   border-radius: 8px;
   background: white;
 }
-
-/* Mock dev console (Shift+D) */
 #mockConsole {
   position: fixed;
   bottom: 0;
