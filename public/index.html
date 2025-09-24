@@ -3,10 +3,21 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Blooket Viewer</title>
+<title>Blooket Proxy Console</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-<h1>Blooket</h1>
-<iframe id="blooketFrame" src="/proxy" style="width:100%; height:90vh;"></iframe>
+<h1>Blooket Proxy</h1>
+
+<div>
+  <input type="text" id="inputBox" placeholder="Type JS here">
+  <button id="sendBtn">Run</button>
+</div>
+
+<div id="consoleOutput"></div>
+
+<iframe id="blooketFrame" src="/proxy" style="width:100%; height:80vh;"></iframe>
+
+<script src="script.js"></script>
 </body>
 </html>
