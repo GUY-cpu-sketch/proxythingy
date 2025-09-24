@@ -2,40 +2,32 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>_______________</title>
+<title>Proxy Chat</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
 <div id="loginScreen">
   <h1>Login</h1>
   <input type="text" id="username" placeholder="Username">
-  <input type="password" id="passwordInput" placeholder="Password">
+  <input type="password" id="password" placeholder="Password">
   <button id="loginBtn">Login</button>
-  <button id="registerBtn">Register</button>
-  <div id="loginMessage"></div>
 </div>
 
 <div id="mainApp" style="display:none;">
-  <h1>Proxy + JS + Chat</h1>
+  <h1>Welcome!</h1>
   <input type="text" id="urlInput" placeholder="Enter URL">
-  <button id="loadBtn">Load URL</button>
-  <input type="text" id="jsInput" placeholder="JS to run">
-  <button id="runBtn">Run JS</button>
-  
-  <iframe id="targetFrame"></iframe>
+  <button id="loadBtn">Load Site</button>
+  <iframe id="siteFrame"></iframe>
 
-  <div id="chatBox"></div>
-  <form id="chatForm">
-    <input type="text" id="chatInput" placeholder="Type message">
-    <button>Send</button>
-  </form>
+  <div id="chat">
+    <div id="messages"></div>
+    <input type="text" id="chatInput" placeholder="Type a message...">
+    <button id="sendBtn">Send</button>
+  </div>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
 <script src="password.js"></script>
 <script src="script.js"></script>
-<script src="chat.js"></script>
 </body>
 </html>
