@@ -4,7 +4,7 @@ const passwordInput = document.getElementById("passwordInput");
 const loginBtn = document.getElementById("loginBtn");
 const loginMessage = document.getElementById("loginMessage");
 
-const PASSWORD = "mySecret123"; // set your password here
+const PASSWORD = "IMNOTNOBLEADMIN"; // set your password here
 
 loginBtn.addEventListener("click", () => {
   const entered = passwordInput.value;
