@@ -1,6 +1,3 @@
-const inputBox = document.getElementById('inputBox');
-const sendBtn = document.getElementById('sendBtn');
-const output = document.getElementById('output');
 // Mock dev console setup
 const mockConsole = document.getElementById('mockConsole');
 let consoleVisible = false;
@@ -38,9 +35,16 @@ window.onerror = function(message, source, lineno, colno, error) {
   logToMockConsole(`[Error] ${message} at ${source}:${lineno}:${colno}`, 'error');
 };
 
+// Proxy frontend interaction
+const inputBox = document.getElementById('inputBox');
+const sendBtn = document.getElementById('sendBtn');
+const output = document.getElementById('output');
+
 sendBtn.addEventListener('click', () => {
   const command = inputBox.value.trim();
   if (!command) return;
+
+  console.log(`Sending command: ${command}`);
 
   fetch(`/api/${encodeURIComponent(command)}`)
     .then(res => res.text())
@@ -49,6 +53,7 @@ sendBtn.addEventListener('click', () => {
       line.textContent = `> ${command}\n${data}`;
       output.appendChild(line);
       output.scrollTop = output.scrollHeight;
+      console.log(`Received response: ${data}`);
     })
     .catch(err => {
       const line = document.createElement('div');
@@ -56,6 +61,7 @@ sendBtn.addEventListener('click', () => {
       line.style.color = 'red';
       output.appendChild(line);
       output.scrollTop = output.scrollHeight;
+      console.error(`Fetch error: ${err}`);
     });
 
   inputBox.value = '';
