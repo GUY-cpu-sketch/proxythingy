@@ -1,6 +1,8 @@
-const iframe = document.getElementById('blooketFrame');
-const inputBox = document.getElementById('inputBox');
-const sendBtn = document.getElementById('sendBtn');
+const iframe = document.getElementById('targetFrame');
+const urlInput = document.getElementById('urlInput');
+const loadBtn = document.getElementById('loadBtn');
+const jsInput = document.getElementById('jsInput');
+const runBtn = document.getElementById('runBtn');
 const consoleOutput = document.getElementById('consoleOutput');
 
 // Mock dev console
@@ -31,7 +33,6 @@ window.addEventListener('keydown', e => {
   }
 });
 
-// Function to log to mock console
 function logToMockConsole(msg, type='log'){
   const line = document.createElement('div');
   line.textContent = msg;
@@ -42,30 +43,10 @@ function logToMockConsole(msg, type='log'){
   mockConsole.scrollTop = mockConsole.scrollHeight;
 }
 
-// Capture messages from iframe
-window.addEventListener('message', e => {
-  if(e.data.type === 'result'){
-    const div = document.createElement('div');
-    div.textContent = `Result: ${e.data.data}`;
-    consoleOutput.appendChild(div);
-    logToMockConsole(`Result: ${e.data.data}`);
-  } else if(e.data.type === 'error'){
-    const div = document.createElement('div');
-    div.textContent = `Error: ${e.data.data}`;
-    div.style.color='red';
-    consoleOutput.appendChild(div);
-    logToMockConsole(`Error: ${e.data.data}`, 'error');
-  } else if(e.data.type === 'log'){
-    logToMockConsole(`Log: ${e.data.data}`);
-  }
-});
-
-// Send JS commands to iframe
-sendBtn.addEventListener('click', () => {
-  const code = inputBox.value;
-  iframe.contentWindow.postMessage(code, '*');
-  inputBox.value = '';
-});
+// Capture main page JS errors
+window.onerror = function(message, source, lineno, colno, error){
+  logToMockConsole(`[Error] ${message} at ${source}:${lineno}:${colno}`, 'error');
+};
 
 // Override main page console to also show in mock console
 ['log','warn','error'].forEach(method=>{
@@ -76,7 +57,26 @@ sendBtn.addEventListener('click', () => {
   }
 });
 
-// Capture main page JS errors
-window.onerror = function(message, source, lineno, colno, error){
-  logToMockConsole(`[Error] ${message} at ${source}:${lineno}:${colno}`, 'error');
-};
+// Load the user-input URL into the iframe
+loadBtn.addEventListener('click', () => {
+  iframe.src = urlInput.value;
+  console.log(`Loaded URL: ${urlInput.value}`);
+});
+
+// Run JS on the iframe (only works for same-origin pages)
+runBtn.addEventListener('click', () => {
+  try {
+    const result = iframe.contentWindow.eval(jsInput.value);
+    const div = document.createElement('div');
+    div.textContent = `Result: ${result}`;
+    consoleOutput.appendChild(div);
+    logToMockConsole(`Result: ${result}`);
+  } catch (err) {
+    const div = document.createElement('div');
+    div.textContent = `Error: ${err}`;
+    div.style.color = 'red';
+    consoleOutput.appendChild(div);
+    logToMockConsole(`Error: ${err}`, 'error');
+  }
+  jsInput.value = '';
+});
