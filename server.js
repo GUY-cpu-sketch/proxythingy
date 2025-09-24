@@ -11,7 +11,7 @@ app.use(cors());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Proxy all requests starting with /api to blooketbot.glitch.me
-const targetUrl = 'https://blooketbot.glitch.me/';
+const targetUrl = 'https://youtube.com/';
 app.use('/api', createProxyMiddleware({
   target: targetUrl,
   changeOrigin: true,
