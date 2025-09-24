@@ -47,7 +47,7 @@ loadBtn.addEventListener("click", () => {
   logToConsole(`🌐 Loaded ${url}`);
 });
 
-// Run JS on iframe (works only on same-origin)
+// Run JS on iframe (same-origin only)
 runBtn.addEventListener("click", () => {
   const code = jsInput.value;
   if(!targetFrame.contentWindow){
