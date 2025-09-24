@@ -1,68 +1,25 @@
-// Mock dev console setup
-const mockConsole = document.getElementById('mockConsole');
-let consoleVisible = false;
-
-// Toggle console with Shift+D
-window.addEventListener('keydown', (e) => {
-  if (e.shiftKey && e.code === 'KeyD') {
-    consoleVisible = !consoleVisible;
-    mockConsole.style.display = consoleVisible ? 'block' : 'none';
-  }
-});
-
-// Function to log to mock console
-function logToMockConsole(message, type='log') {
-  const line = document.createElement('div');
-  line.textContent = message;
-  if(type === 'error') line.style.color = 'red';
-  else if(type === 'warn') line.style.color = 'yellow';
-  else line.style.color = 'green';
-  mockConsole.appendChild(line);
-  mockConsole.scrollTop = mockConsole.scrollHeight;
-}
-
-// Override console methods
-['log','warn','error'].forEach(method => {
-  const original = console[method];
-  console[method] = function(...args){
-    logToMockConsole(args.join(' '), method);
-    original.apply(console, args);
-  }
-});
-
-// Capture JS errors
-window.onerror = function(message, source, lineno, colno, error) {
-  logToMockConsole(`[Error] ${message} at ${source}:${lineno}:${colno}`, 'error');
-};
-
-// Proxy frontend interaction
+const iframe = document.getElementById('blooketFrame');
 const inputBox = document.getElementById('inputBox');
 const sendBtn = document.getElementById('sendBtn');
-const output = document.getElementById('output');
+const consoleOutput = document.getElementById('consoleOutput');
 
+// Receive messages from iframe
+window.addEventListener('message', e => {
+  if(e.data.type === 'result') {
+    const div = document.createElement('div');
+    div.textContent = `Result: ${e.data.data}`;
+    consoleOutput.appendChild(div);
+  } else if(e.data.type === 'error') {
+    const div = document.createElement('div');
+    div.textContent = `Error: ${e.data.data}`;
+    div.style.color = 'red';
+    consoleOutput.appendChild(div);
+  }
+});
+
+// Send JS commands to iframe
 sendBtn.addEventListener('click', () => {
-  const command = inputBox.value.trim();
-  if (!command) return;
-
-  console.log(`Sending command: ${command}`);
-
-  fetch(`/api/${encodeURIComponent(command)}`)
-    .then(res => res.text())
-    .then(data => {
-      const line = document.createElement('div');
-      line.textContent = `> ${command}\n${data}`;
-      output.appendChild(line);
-      output.scrollTop = output.scrollHeight;
-      console.log(`Received response: ${data}`);
-    })
-    .catch(err => {
-      const line = document.createElement('div');
-      line.textContent = `Error: ${err}`;
-      line.style.color = 'red';
-      output.appendChild(line);
-      output.scrollTop = output.scrollHeight;
-      console.error(`Fetch error: ${err}`);
-    });
-
+  const code = inputBox.value;
+  iframe.contentWindow.postMessage(code, '*');
   inputBox.value = '';
 });
