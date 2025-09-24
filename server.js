@@ -17,7 +17,6 @@ app.get("/proxy", (req, res, next) => {
   const targetUrl = req.query.url;
   if (!targetUrl) return res.status(400).send("Missing ?url= parameter");
 
-  // Use proxy middleware dynamically
   createProxyMiddleware({
     target: targetUrl,
     changeOrigin: true,
