@@ -1,7 +1,7 @@
 {
-  "name": "blooket-proxy",
+  "name": "blooket-bot",
   "version": "1.0.0",
-  "description": "Proxy + frontend for blooketbot",
+  "description": "botting thingy",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
