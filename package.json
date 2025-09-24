@@ -1,7 +1,7 @@
 {
   "name": "blooket-proxy-lite",
   "version": "1.0.0",
-  "description": "Minimal proxy with header stripping + JS injector",
+  "description": "Minimal proxy with header stripping + JS injector + password",
   "main": "server.js",
   "type": "module",
   "scripts": {
