@@ -1,25 +1,32 @@
 const express = require('express');
-const { createProxyMiddleware } = require('http-proxy-middleware');
-const path = require('path');
-const cors = require('cors');
+const axios = require('axios');
 const app = express();
 
-// Enable CORS
-app.use(cors());
+// Serve frontend
+app.use(express.static('public'));
 
-// Serve static frontend
-app.use(express.static(path.join(__dirname, 'public')));
+// Proxy endpoint
+app.get('/proxy', async (req, res) => {
+  const target = 'https://www.blooket.com/'; // site to proxy
+  try {
+    const response = await axios.get(target);
+    let html = response.data;
 
-// Proxy all requests starting with /api to blooketbot.glitch.me
-const targetUrl = 'https://youtube.com/';
-app.use('/api', createProxyMiddleware({
-  target: targetUrl,
-  changeOrigin: true,
-  pathRewrite: { '^/api': '/' },
-}));
+    // Inject custom JS
+    const inject = `
+      <script>
+        console.log('Injected JS works!');
+        window.alert('You can run JS here!');
+      </script>
+    `;
+    html = html.replace('</body>', inject + '</body>');
 
-// Start server
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+    // Serve rewritten page
+    res.send(html);
+  } catch (err) {
+    res.status(500).send('Error fetching target site.');
+  }
 });
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log('Proxy running on port', PORT));
