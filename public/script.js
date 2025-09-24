@@ -5,7 +5,6 @@ const jsInput = document.getElementById("jsInput");
 const targetFrame = document.getElementById("targetFrame");
 const consoleOutput = document.getElementById("consoleOutput");
 
-// Shift+D mock console
 const mockConsole = document.createElement("div");
 mockConsole.id = "mockConsole";
 mockConsole.style.display = "none";
