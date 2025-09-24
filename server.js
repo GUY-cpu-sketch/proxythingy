@@ -1,62 +1,42 @@
-const express = require('express');
-const axios = require('axios');
-const app = express();
+import express from "express";
+import { createProxyMiddleware } from "http-proxy-middleware";
+import path from "path";
+import { fileURLToPath } from "url";
 
-app.use(express.static('public'));
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Serve static files (your frontend)
+app.use(express.static(path.join(__dirname, "public")));
 
 // Proxy endpoint
-app.get('/proxy', async (req, res) => {
-  const target = 'https://www.blooket.com/';
-  try {
-    const response = await axios.get(target);
-    let html = response.data;
-
-    // Inject script: forward console logs/errors to parent
-    const inject = `
-      <script>
-        (function(){
-          const oldLog = console.log;
-          const oldWarn = console.warn;
-          const oldError = console.error;
-
-          console.log = function(...args){
-            window.parent.postMessage({type:'log', data:args.join(' ')}, '*');
-            oldLog.apply(console,args);
-          };
-          console.warn = function(...args){
-            window.parent.postMessage({type:'warn', data:args.join(' ')}, '*');
-            oldWarn.apply(console,args);
-          };
-          console.error = function(...args){
-            window.parent.postMessage({type:'error', data:args.join(' ')}, '*');
-            oldError.apply(console,args);
-          };
-
-          // Capture uncaught errors in iframe
-          window.onerror = function(message, source, lineno, colno, err){
-            window.parent.postMessage({type:'error', data: message + ' at ' + source + ':' + lineno + ':' + colno}, '*');
-          };
-
-          // Listen for parent JS commands
-          window.addEventListener('message', e=>{
-            try{
-              const result = eval(e.data);
-              e.source.postMessage({type:'result', data:result}, e.origin);
-            } catch(err){
-              e.source.postMessage({type:'error', data:err.toString()}, e.origin);
-            }
-          });
-        })();
-      </script>
-    `;
-
-    html = html.replace('</body>', inject + '</body>');
-    res.send(html);
-
-  } catch (err) {
-    res.status(500).send('Error fetching target site.');
+app.use("/proxy", createProxyMiddleware({
+  target: "", // dynamic target, overridden by router
+  changeOrigin: true,
+  selfHandleResponse: false,
+  onProxyReq: (proxyReq, req) => {
+    // Dynamically change target based on ?url=
+    const url = req.query.url;
+    if (url) {
+      proxyReq.path = new URL(url).pathname + (new URL(url).search || "");
+      proxyReq.setHeader("host", new URL(url).host);
+    }
+  },
+  router: (req) => {
+    const url = req.query.url;
+    if (!url) return "https://example.com";
+    return url;
+  },
+  onProxyRes: (proxyRes) => {
+    // 🔑 Strip frame-blocking headers
+    delete proxyRes.headers["x-frame-options"];
+    delete proxyRes.headers["content-security-policy"];
   }
-});
+}));
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log('Proxy running on port', PORT));
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
