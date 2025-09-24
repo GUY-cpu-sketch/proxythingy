@@ -3,27 +3,36 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Proxy + JS Injector</title>
+<title>Password Protected Proxy</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<h1>Proxy + JS Injector</h1>
-
-<div>
-  <input type="text" id="urlInput" placeholder="Enter URL here">
-  <button id="loadBtn">Load URL</button>
+<div id="loginScreen">
+  <h1>Enter Password</h1>
+  <input type="password" id="passwordInput" placeholder="Password">
+  <button id="loginBtn">Login</button>
+  <div id="loginMessage"></div>
 </div>
 
-<div style="margin-top:10px;">
-  <input type="text" id="jsInput" placeholder="Type JS to run">
-  <button id="runBtn">Run JS</button>
+<div id="mainApp" style="display:none;">
+  <!-- Your proxy + JS injector UI here -->
+  <h1>Proxy + JS Injector</h1>
+  <div>
+    <input type="text" id="urlInput" placeholder="Enter URL here">
+    <button id="loadBtn">Load URL</button>
+  </div>
+
+  <div style="margin-top:10px;">
+    <input type="text" id="jsInput" placeholder="Type JS to run">
+    <button id="runBtn">Run JS</button>
+  </div>
+
+  <div id="consoleOutput"></div>
+  <iframe id="targetFrame"></iframe>
 </div>
-
-<div id="consoleOutput"></div>
-
-<iframe id="targetFrame"></iframe>
 
 <script src="script.js"></script>
+<script src="password.js"></script>
 </body>
 </html>
