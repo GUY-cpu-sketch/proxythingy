@@ -1,28 +1,30 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Proxy + JS Injector</title>
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Proxy + JS Injector</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>Proxy + JS Injector</h1>
 
-  <div>
-    <input type="text" id="urlInput" placeholder="Enter URL here">
-    <button id="loadBtn">Load URL</button>
-  </div>
+<h1>Proxy + JS Injector</h1>
 
-  <div style="margin-top:10px;">
-    <input type="text" id="jsInput" placeholder="Type JS to run">
-    <button id="runBtn">Run JS</button>
-  </div>
+<div>
+  <input type="text" id="urlInput" placeholder="Enter URL here">
+  <button id="loadBtn">Load URL</button>
+</div>
 
-  <div id="consoleOutput"></div>
+<div style="margin-top:10px;">
+  <input type="text" id="jsInput" placeholder="Type JS to run">
+  <button id="runBtn">Run JS</button>
+</div>
 
-  <iframe id="targetFrame" style="width:100%; height:80vh; margin-top:10px;"></iframe>
+<div id="consoleOutput"></div>
 
-  <script src="script.js"></script>
+<iframe id="targetFrame"></iframe>
+
+<script src="script.js"></script>
+
 </body>
 </html>
