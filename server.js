@@ -9,33 +9,25 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Serve static files (your frontend)
+// Serve static files
 app.use(express.static(path.join(__dirname, "public")));
 
-// Proxy endpoint
-app.use("/proxy", createProxyMiddleware({
-  target: "", // dynamic target, overridden by router
-  changeOrigin: true,
-  selfHandleResponse: false,
-  onProxyReq: (proxyReq, req) => {
-    // Dynamically change target based on ?url=
-    const url = req.query.url;
-    if (url) {
-      proxyReq.path = new URL(url).pathname + (new URL(url).search || "");
-      proxyReq.setHeader("host", new URL(url).host);
+// Proxy route for any URL
+app.use("/proxy", (req, res, next) => {
+  const targetUrl = req.query.url;
+  if (!targetUrl) return res.status(400).send("Missing ?url= parameter");
+
+  createProxyMiddleware({
+    target: targetUrl,
+    changeOrigin: true,
+    selfHandleResponse: false,
+    onProxyRes: (proxyRes) => {
+      // Strip headers that block iframes
+      delete proxyRes.headers["x-frame-options"];
+      delete proxyRes.headers["content-security-policy"];
     }
-  },
-  router: (req) => {
-    const url = req.query.url;
-    if (!url) return "https://example.com";
-    return url;
-  },
-  onProxyRes: (proxyRes) => {
-    // 🔑 Strip frame-blocking headers
-    delete proxyRes.headers["x-frame-options"];
-    delete proxyRes.headers["content-security-policy"];
-  }
-}));
+  })(req, res, next);
+});
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
