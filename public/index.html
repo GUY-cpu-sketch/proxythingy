@@ -3,22 +3,41 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>_____________________</title>
-  <link rel="stylesheet" href="style.css">
+  <title>________________</title>
+  <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-  <nav>
-    <a href="/">Home</a>
-    <script type="module" src="/chat/chat.js"></script>
-    <a href="/register.html">Register</a>
-    <a href="/login.html">Log In</a>
+  <!-- Top nav -->
+  <nav class="top-nav">
+    <span class="logo">ProxyThingy</span>
+    <button id="chatBtn" class="nav-btn">Chat</button>
+    <button id="logoutBtn" class="nav-btn">Logout</button>
   </nav>
-  <main>
-    <h1>Welcome to ma website</h1>
-    <p>brought to you by da man, #MASON!!!</p>
-    <p>Report harmful content: If you encounter content that violates the app's rules, report it to the moderators.</p>
-    <p>Be mindful of privacy: Avoid sharing personal or sensitive information that could compromise privacy.</p>
-    <p>Help maintain a safe environment: Don't post content that promotes illegal activities, hate speech, or graphic violence.</p>
-  </main>
+
+  <!-- Chat panel -->
+  <div id="chatPanel" class="chat-panel hidden">
+    <div id="chatBox" class="chat-box"></div>
+    <form id="chatForm" class="chat-form">
+      <input type="text" id="chatInput" placeholder="Type a message..." autocomplete="off">
+      <button type="submit">Send</button>
+    </form>
+    <ul id="userList" class="user-list"></ul>
+  </div>
+
+  <script type="module" src="/chat/chat.js"></script>
+  <script>
+    const chatBtn = document.getElementById("chatBtn");
+    const chatPanel = document.getElementById("chatPanel");
+
+    chatBtn.addEventListener("click", () => {
+      chatPanel.classList.toggle("hidden");
+    });
+
+    const logoutBtn = document.getElementById("logoutBtn");
+    logoutBtn.addEventListener("click", async () => {
+      await fetch("/logout", { method: "POST" });
+      window.location.href = "/login.html";
+    });
+  </script>
 </body>
 </html>
