@@ -3,6 +3,7 @@ import http from "http";
 import { Server } from "socket.io";
 import path from "path";
 import { fileURLToPath } from "url";
+import sqlite3 from "sqlite3";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -14,10 +15,47 @@ const io = new Server(server);
 app.use(express.static(path.join(__dirname, "public")));
 app.use(express.json());
 
+// --- SQLite setup ---
+const db = new sqlite3.Database("./database.sqlite", (err) => {
+  if (err) console.error("DB Error:", err);
+  else console.log("Connected to SQLite database");
+});
+
+db.run(`CREATE TABLE IF NOT EXISTS users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  username TEXT UNIQUE,
+  password TEXT
+)`);
+
+// --- Routes ---
+app.post("/register", (req, res) => {
+  const { username, password } = req.body;
+  if (!username || !password) return res.json({ success: false, message: "Missing fields" });
+
+  const stmt = db.prepare("INSERT INTO users(username, password) VALUES(?, ?)");
+  stmt.run(username, password, function(err) {
+    if (err) {
+      return res.json({ success: false, message: "Username already exists" });
+    }
+    res.json({ success: true });
+  });
+});
+
+app.post("/login", (req, res) => {
+  const { username, password } = req.body;
+  if (!username || !password) return res.json({ success: false, message: "Missing fields" });
+
+  db.get("SELECT * FROM users WHERE username=? AND password=?", [username, password], (err, row) => {
+    if (err) return res.json({ success: false, message: "DB error" });
+    if (!row) return res.json({ success: false, message: "Invalid credentials" });
+    res.json({ success: true });
+  });
+});
+
+// --- Chat ---
 const onlineUsers = new Map();
 const ADMIN_USER = "DEV";
 
-// --- Socket.IO ---
 io.on("connection", (socket) => {
   console.log("New connection:", socket.id);
 
@@ -28,13 +66,11 @@ io.on("connection", (socket) => {
     socket.username = username;
     onlineUsers.set(socket.id, username);
 
-    // Welcome message
     socket.emit("system", `Welcome, ${username}!`);
     socket.broadcast.emit("system", `${username} joined the chat`);
     io.emit("update-users", [...onlineUsers.values()]);
   });
 
-  // Handle chat messages
   socket.on("send-chat", (msg) => {
     if (!socket.username || !msg) return;
 
@@ -61,13 +97,17 @@ io.on("connection", (socket) => {
     });
   });
 
-  // Disconnect
   socket.on("disconnect", () => {
     if (!socket.username) return;
     onlineUsers.delete(socket.id);
     io.emit("update-users", [...onlineUsers.values()]);
     io.emit("system", `${socket.username} left the chat`);
   });
+});
+
+// --- Logout route ---
+app.post("/logout", (req, res) => {
+  res.json({ success: true });
 });
 
 // --- Start server ---
