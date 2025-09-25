@@ -6,7 +6,7 @@ const chatInput = document.getElementById("chatInput");
 const sendBtn = document.getElementById("sendBtn");
 
 // ----- Add your admin usernames here -----
-const admins = ["Mason", "AdminUser2"]; // <-- edit usernames here
+const admins = ["DEV", "AdminUser2"]; // <-- edit usernames here
 
 // Generate color for username
 function getUsernameColor(username) {
