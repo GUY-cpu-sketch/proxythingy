@@ -1,8 +1,8 @@
+// public/register.js
 const form = document.getElementById('registerForm');
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
-
   const username = document.getElementById('username').value;
   const password = document.getElementById('password').value;
 
@@ -12,14 +12,9 @@ form.addEventListener('submit', async (e) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password })
     });
-
     const data = await res.json();
-    if (data.success) {
-      alert('Registration successful!');
-      window.location.href = '/chat'; // redirect to chat
-    } else {
-      alert('Registration failed: ' + data.error);
-    }
+    if (data.success) window.location.href = '/chat';
+    else alert('Registration failed: ' + data.error);
   } catch (err) {
     console.error(err);
     alert('An error occurred.');
