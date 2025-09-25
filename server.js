@@ -14,10 +14,23 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
+// ---- Middleware ----
+app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.json()); // parse JSON body
+
 // ---- SQLite database ----
 const db = new sqlite3.Database(path.join(__dirname, 'database.sqlite'), (err) => {
   if (err) console.error('Database opening error:', err);
 });
+
+// Create users table if it doesn't exist
+db.run(`
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL
+  )
+`);
 
 // Create messages table if it doesn't exist
 db.run(`
@@ -29,8 +42,21 @@ db.run(`
   )
 `);
 
-// ---- Serve static files (your proxy site) ----
-app.use(express.static(path.join(__dirname, 'public')));
+// ---- Registration endpoint ----
+app.post('/register', (req, res) => {
+  const { username, password } = req.body;
+
+  if (!username || !password) return res.json({ success: false, error: 'Missing fields' });
+
+  db.run(
+    'INSERT INTO users (username, password) VALUES (?, ?)',
+    [username, password],
+    (err) => {
+      if (err) return res.json({ success: false, error: 'Username may already exist.' });
+      res.json({ success: true });
+    }
+  );
+});
 
 // ---- Chat route ----
 app.get('/chat', (req, res) => {
@@ -41,7 +67,7 @@ app.get('/chat', (req, res) => {
 io.on('connection', socket => {
   console.log('A user connected');
 
-  // Send last 50 messages to new user
+  // Send last 50 messages
   db.all('SELECT * FROM messages ORDER BY id DESC LIMIT 50', [], (err, rows) => {
     if (err) return console.error(err);
     rows.reverse().forEach(row => socket.emit('chat', { user: row.user, message: row.message }));
