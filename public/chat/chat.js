@@ -1,59 +1,46 @@
+const chatBox = document.getElementById("chatBox");
+const chatForm = document.getElementById("chatForm");
+const chatInput = document.getElementById("chatInput");
+const userList = document.getElementById("userList");
+
+// --- Replace this with actual username from login flow ---
+const username = prompt("Enter your username:") || "Guest";
+
 const socket = io();
-let username = "";
-
-// Fetch session and register username
-async function init() {
-  try {
-    const res = await fetch('/session');
-    if (!res.ok) throw new Error('Not logged in');
-    const data = await res.json();
-    username = data.username;
-    socket.emit('register-user', username);
-  } catch (err) {
-    window.location.href = '/login.html';
-    return;
-  }
-
-  // Send chat only after username is registered
-  const sendBtn = document.getElementById('sendBtn');
-  const input = document.getElementById('chatInput');
-
-  sendBtn.addEventListener('click', () => {
-    const msg = input.value.trim();
-    if (!msg) return;
-    socket.emit('send-chat', msg);
-    input.value = '';
-  });
-
-  input.addEventListener('keypress', e => {
-    if (e.key === 'Enter') sendBtn.click();
-  });
-}
+socket.emit("register-user", username);
 
 // --- Receive messages ---
-socket.on('chat', data => addMessage(data));
+socket.on("chat", (data) => addMessage(data));
+socket.on("system", (msg) => addMessage({ user: "SYSTEM", message: msg }));
+socket.on("clear-chat", () => {
+  chatBox.innerHTML = "";
+});
 
-// --- Update online users ---
-socket.on('update-users', users => {
-  const userList = document.getElementById('userList');
+// --- Update user list ---
+socket.on("update-users", (users) => {
   if (!userList) return;
-  userList.innerHTML = '';
+  userList.innerHTML = "";
   users.forEach(u => {
-    const li = document.createElement('li');
+    const li = document.createElement("li");
     li.textContent = u;
     userList.appendChild(li);
   });
 });
 
-// --- Add message to chat box ---
+// --- Add message ---
 function addMessage({ user, message, timestamp }) {
-  const chatBox = document.getElementById('chatBox');
-  const div = document.createElement('div');
-  div.className = 'message';
-  div.innerHTML = `<span class="username">${user}</span>: <span class="msg">${message}</span> <span class="timestamp">${timestamp}</span>`;
+  const div = document.createElement("div");
+  div.className = "message";
+  div.innerHTML = `<span class="username">${user}</span>: <span class="msg">${message}</span> <span class="timestamp">${timestamp || ""}</span>`;
   chatBox.appendChild(div);
   chatBox.scrollTop = chatBox.scrollHeight;
 }
 
-// Initialize
-init();
+// --- Send messages ---
+chatForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const msg = chatInput.value.trim();
+  if (!msg) return;
+  socket.emit("send-chat", msg);
+  chatInput.value = "";
+});
