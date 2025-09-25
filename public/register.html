@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Register</title>
-<link rel="stylesheet" href="/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register - ProxyThingy</title>
+  <link rel="stylesheet" href="/style.css">
 </head>
 <body>
   <div class="auth-container">
@@ -15,9 +15,31 @@
       <button type="submit">Register</button>
     </form>
     <p>Already have an account? <a href="/login.html">Login</a></p>
-    <p id="errorMsg" class="error"></p>
   </div>
 
-<script type="module" src="/register.js"></script>
+  <script type="module">
+    const registerForm = document.getElementById("registerForm");
+
+    registerForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const username = document.getElementById("username").value.trim();
+      const password = document.getElementById("password").value;
+
+      // Send registration info to server
+      const res = await fetch("/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        alert("Registration successful! Please login.");
+        window.location.href = "/login.html";
+      } else {
+        alert(data.message || "Registration failed");
+      }
+    });
+  </script>
 </body>
 </html>
