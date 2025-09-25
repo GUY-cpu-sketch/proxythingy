@@ -1,113 +1,155 @@
-const express = require("express");
-const session = require("express-session");
-const { createProxyMiddleware } = require("http-proxy-middleware");
-const bcrypt = require("bcrypt");
-const sqlite3 = require("better-sqlite3");
-const http = require("http");
-const { Server } = require("socket.io");
+import express from "express";
+import session from "express-session";
+import { createProxyMiddleware } from "http-proxy-middleware";
+import bcrypt from "bcrypt";
+import { Server } from "socket.io";
+import http from "http";
+import path from "path";
+import { fileURLToPath } from "url";
+import Database from "better-sqlite3";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-const db = new sqlite3("./database.sqlite");
+const db = new Database("./database.sqlite");
 
-// Setup users table
-db.prepare(`CREATE TABLE IF NOT EXISTS users (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  username TEXT UNIQUE,
-  password TEXT,
-  role TEXT DEFAULT 'user'
-)`).run();
+// Create users table if not exists
+db.prepare(`
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE,
+    password TEXT,
+    role TEXT DEFAULT 'user'
+  )
+`).run();
 
+const ADMIN_USERNAME = "Mason";  // change this as needed
+
+// Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(session({
-  secret: "replace_this_with_a_secret",
+  secret: "MEWyatt32411",
   resave: false,
-  saveUninitialized: true
+  saveUninitialized: true,
+  cookie: { maxAge: null }  // session ends when browser closed
 }));
 
-// Serve public folder
-app.use(express.static("public"));
+app.use(express.static(path.join(__dirname, "public")));
 
-// Proxy endpoint
-app.use("/proxy", createProxyMiddleware({
-  target: "http://example.com", // placeholder
-  changeOrigin: true,
-  onProxyReq(proxyReq, req, res) {
-    proxyReq.removeHeader("origin");
-  },
-  onProxyRes(proxyRes, req, res) {
-    proxyRes.headers['x-frame-options'] = 'ALLOWALL';
-  },
-  pathRewrite: { "^/proxy": "" }
-}));
+// Proxy route
+app.get("/proxy", (req, res, next) => {
+  const targetUrl = req.query.url;
+  if (!targetUrl) {
+    return res.status(400).send("Missing ?url= parameter");
+  }
+  createProxyMiddleware({
+    target: targetUrl,
+    changeOrigin: true,
+    selfHandleResponse: false,
+    onProxyRes: (proxyRes) => {
+      delete proxyRes.headers["x-frame-options"];
+      delete proxyRes.headers["content-security-policy"];
+    }
+  })(req, res, next);
+});
 
-// Registration
+// Auth: register
 app.post("/register", async (req, res) => {
   const { username, password } = req.body;
+  if (!username || !password) {
+    return res.json({ success: false, message: "Missing username or password" });
+  }
   const hash = await bcrypt.hash(password, 10);
   try {
-    db.prepare("INSERT INTO users (username, password) VALUES (?, ?)").run(username, hash);
+    db.prepare("INSERT INTO users(username, password) VALUES(?, ?)").run(username, hash);
     res.json({ success: true });
-  } catch (e) {
-    res.json({ success: false, error: e.message });
+  } catch (err) {
+    res.json({ success: false, message: "Username taken" });
   }
 });
 
-// Login
+// Auth: login
 app.post("/login", async (req, res) => {
   const { username, password } = req.body;
-  const user = db.prepare("SELECT * FROM users WHERE username = ?").get(username);
-  if (!user) return res.json({ success: false, error: "User not found" });
-  const match = await bcrypt.compare(password, user.password);
-  if (match) {
-    req.session.user = { username: user.username, role: user.role };
-    res.json({ success: true, user: req.session.user });
-  } else {
-    res.json({ success: false, error: "Incorrect password" });
+  const row = db.prepare("SELECT * FROM users WHERE username = ?").get(username);
+  if (!row) {
+    return res.json({ success: false, message: "User not found" });
   }
+  const match = await bcrypt.compare(password, row.password);
+  if (!match) {
+    return res.json({ success: false, message: "Incorrect password" });
+  }
+  req.session.user = {
+    username: row.username,
+    role: row.role,
+    isAdmin: row.username === ADMIN_USERNAME
+  };
+  res.json({ success: true, user: req.session.user });
 });
 
-// Socket.IO Chat
-const users = new Map(); // username -> socket
+// Socket.IO for chat
+io.use((socket, next) => {
+  const sessionData = socket.handshake.auth.session;
+  if (sessionData) {
+    socket.user = sessionData;
+    return next();
+  }
+  return next(new Error("unauthorized"));
+});
 
 io.on("connection", (socket) => {
-  socket.on("login", (username) => {
-    users.set(username, socket);
-    socket.username = username;
-  });
-
-  socket.on("message", (msg) => {
-    io.emit("message", { from: socket.username, message: msg });
-  });
-
-  socket.on("whisper", ({ to, message }) => {
-    if (users.has(to)) users.get(to).emit("message", { from: socket.username, message });
-  });
-
-  // Admin-only commands
-  socket.on("ban", (target) => {
-    if (socket.username !== "admin") return;
-    if (users.has(target)) users.get(target).disconnect();
-  });
-
-  socket.on("mute", (target) => {
-    if (socket.username !== "admin") return;
-    if (users.has(target)) users.get(target).emit("muted");
-  });
-
-  socket.on("clear", () => {
-    if (socket.username !== "admin") return;
-    io.emit("clearChat");
-  });
-
-  socket.on("disconnect", () => {
-    users.delete(socket.username);
+  // Chat message
+  socket.on("chat", (msg) => {
+    if (msg.startsWith("/")) {
+      const parts = msg.split(" ");
+      const cmd = parts[0].toLowerCase();
+      if (socket.user.isAdmin) {
+        switch (cmd) {
+          case "/ban": {
+            const target = parts[1];
+            db.prepare("UPDATE users SET role = 'banned' WHERE username = ?").run(target);
+            io.emit("system", `${target} was banned`);
+            break;
+          }
+          case "/unban": {
+            const target = parts[1];
+            db.prepare("UPDATE users SET role = 'user' WHERE username = ?").run(target);
+            io.emit("system", `${target} was unbanned`);
+            break;
+          }
+          case "/mute": {
+            const target = parts[1];
+            db.prepare("UPDATE users SET role = 'muted' WHERE username = ?").run(target);
+            io.emit("system", `Muted ${target}`);
+            break;
+          }
+          case "/unmute": {
+            const target = parts[1];
+            db.prepare("UPDATE users SET role = 'user' WHERE username = ?").run(target);
+            io.emit("system", `Unmuted ${target}`);
+            break;
+          }
+          case "/clear": {
+            io.emit("clear");  // tell clients to clear chat
+            break;
+          }
+        }
+      }
+    } else {
+      // normal message
+      if (socket.user.role !== "muted" && socket.user.role !== "banned") {
+        io.emit("chat", { user: socket.user.username, message: msg });
+      }
+    }
   });
 });
 
-server.listen(process.env.PORT || 3000, () => {
-  console.log("Server running on port 3000");
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
