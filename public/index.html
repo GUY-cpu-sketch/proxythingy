@@ -1,55 +1,123 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ProxyThingy Chat</title>
-  <link rel="stylesheet" href="/style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ProxyThingy</title>
+<link rel="stylesheet" href="/style.css">
 </head>
 <body>
-  <!-- Top nav -->
-  <nav class="top-nav">
-    <span class="logo">ProxyThingy</span>
-    <button id="chatBtn" class="nav-btn hidden">Chat</button>
-    <button id="logoutBtn" class="nav-btn hidden">Logout</button>
-  </nav>
 
-  <!-- Chat panel -->
-  <div id="chatPanel" class="chat-panel hidden">
-    <div id="chatBox" class="chat-box"></div>
-    <form id="chatForm" class="chat-form">
-      <input type="text" id="chatInput" placeholder="Type a message..." autocomplete="off">
-      <button type="submit">Send</button>
-    </form>
-    <ul id="userList" class="user-list"></ul>
+<div class="landing-container">
+  <h1>Welcome to ProxyThingy</h1>
+  <p>Join the chat and enjoy real-time communication.</p>
+
+  <!-- Login/Register Forms -->
+  <div id="authContainer">
+    <h2>Login</h2>
+    <input type="text" id="username" placeholder="Username" autocomplete="off">
+    <input type="password" id="password" placeholder="Password" autocomplete="off">
+    <button id="loginBtn">Login</button>
+    <p>or <span id="showRegister" style="cursor:pointer;color:#7289da;">Register</span></p>
+    <p id="authMessage" style="color:#f04747;"></p>
   </div>
 
-  <script type="module" src="/chat/chat.js"></script>
-  <script>
-    // Make sure user is logged in
-    const chatBtn = document.getElementById("chatBtn");
-    const logoutBtn = document.getElementById("logoutBtn");
-    const chatPanel = document.getElementById("chatPanel");
+  <div id="registerContainer" style="display:none;">
+    <h2>Register</h2>
+    <input type="text" id="regUsername" placeholder="Username" autocomplete="off">
+    <input type="password" id="regPassword" placeholder="Password" autocomplete="off">
+    <button id="registerBtn">Register</button>
+    <p>or <span id="showLogin" style="cursor:pointer;color:#7289da;">Login</span></p>
+    <p id="regMessage" style="color:#f04747;"></p>
+  </div>
+</div>
 
-    if (!window.sessionData?.username) {
-      window.location.href = "/login.html";
+<!-- Chat Panel -->
+<div id="chatContainer" style="display:none;">
+  <div class="chat-header">
+    <span>Chat</span>
+    <button id="logoutBtn">Logout</button>
+  </div>
+  <div id="chatBox" class="chat-box"></div>
+  <form id="chatForm">
+    <input id="chatInput" placeholder="Type a message..." autocomplete="off">
+    <button>Send</button>
+  </form>
+  <ul id="userList" class="user-list"></ul>
+</div>
+
+<script type="module" src="/chat/chat.js"></script>
+<script>
+  // --- Login/Register toggle ---
+  const authContainer = document.getElementById("authContainer");
+  const registerContainer = document.getElementById("registerContainer");
+  const showRegister = document.getElementById("showRegister");
+  const showLogin = document.getElementById("showLogin");
+
+  showRegister.addEventListener("click", () => {
+    authContainer.style.display = "none";
+    registerContainer.style.display = "block";
+  });
+
+  showLogin.addEventListener("click", () => {
+    registerContainer.style.display = "none";
+    authContainer.style.display = "block";
+  });
+
+  // --- Login ---
+  const loginBtn = document.getElementById("loginBtn");
+  const authMessage = document.getElementById("authMessage");
+  loginBtn.addEventListener("click", async () => {
+    const username = document.getElementById("username").value.trim();
+    const password = document.getElementById("password").value.trim();
+    if (!username || !password) return authMessage.textContent = "Fill in all fields";
+
+    const res = await fetch("/login", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({username,password})
+    });
+    const data = await res.json();
+    if(data.success){
+      window.sessionData = {username};
+      authContainer.style.display="none";
+      chatContainer.style.display="block";
+    } else authMessage.textContent = data.message || "Login failed";
+  });
+
+  // --- Register ---
+  const registerBtn = document.getElementById("registerBtn");
+  const regMessage = document.getElementById("regMessage");
+  registerBtn.addEventListener("click", async () => {
+    const username = document.getElementById("regUsername").value.trim();
+    const password = document.getElementById("regPassword").value.trim();
+    if (!username || !password) return regMessage.textContent = "Fill in all fields";
+
+    const res = await fetch("/register", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({username,password})
+    });
+    const data = await res.json();
+    if(data.success){
+      regMessage.style.color="#43b581";
+      regMessage.textContent="Registration successful! Please login.";
+      setTimeout(()=>{
+        registerContainer.style.display="none";
+        authContainer.style.display="block";
+      },1500);
     } else {
-      // Show nav buttons
-      chatBtn.classList.remove("hidden");
-      logoutBtn.classList.remove("hidden");
+      regMessage.style.color="#f04747";
+      regMessage.textContent = data.message || "Registration failed";
     }
+  });
 
-    // Chat toggle
-    chatBtn.addEventListener("click", () => {
-      chatPanel.classList.toggle("hidden");
-    });
-
-    // Logout
-    logoutBtn.addEventListener("click", async () => {
-      await fetch("/logout", { method: "POST" });
-      window.sessionData = null;
-      window.location.href = "/login.html";
-    });
-  </script>
+  // --- Logout ---
+  document.getElementById("logoutBtn").addEventListener("click", ()=>{
+    window.sessionData=null;
+    chatContainer.style.display="none";
+    authContainer.style.display="block";
+  });
+</script>
 </body>
 </html>
