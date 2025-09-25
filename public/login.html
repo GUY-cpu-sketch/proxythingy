@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Login</title>
-<link rel="stylesheet" href="/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - ProxyThingy</title>
+  <link rel="stylesheet" href="/style.css">
 </head>
 <body>
   <div class="auth-container">
@@ -15,9 +15,32 @@
       <button type="submit">Login</button>
     </form>
     <p>Don't have an account? <a href="/register.html">Register</a></p>
-    <p id="errorMsg" class="error"></p>
   </div>
 
-<script type="module" src="/login.js"></script>
+  <script type="module">
+    const loginForm = document.getElementById("loginForm");
+
+    loginForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const username = document.getElementById("username").value.trim();
+      const password = document.getElementById("password").value;
+
+      // Send login info to server
+      const res = await fetch("/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        // Save username/password in sessionStorage for chat.js
+        window.sessionData = { username, password };
+        window.location.href = "/index.html";
+      } else {
+        alert(data.message || "Login failed");
+      }
+    });
+  </script>
 </body>
 </html>
