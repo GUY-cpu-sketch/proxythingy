@@ -1,78 +1,83 @@
-/* General body styling */
+/* === General Body === */
 body {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   margin: 0;
   padding: 0;
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   background-color: #36393f;
   color: #dcddde;
 }
 
-/* Navbar styling */
+/* === Navbar === */
 nav {
   background-color: #2f3136;
-  padding: 10px 20px;
   display: flex;
   align-items: center;
-  gap: 20px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  padding: 10px 20px;
+  gap: 15px;
+  border-bottom: 1px solid #202225;
 }
 
 nav a {
-  color: #dcddde;
+  color: #fff;
   text-decoration: none;
-  font-weight: 600;
-  padding: 8px 12px;
+  font-weight: 500;
+  padding: 5px 10px;
   border-radius: 5px;
-  transition: background-color 0.2s ease;
+  transition: background 0.2s ease;
 }
 
 nav a:hover {
-  background-color: #4f545c;
+  background-color: #40444b;
 }
 
-/* Main content */
+/* === Forms === */
 main {
-  padding: 20px;
+  max-width: 400px;
+  margin: 50px auto;
+  background-color: #2f3136;
+  padding: 30px;
+  border-radius: 10px;
+  box-shadow: 0 0 10px #000;
 }
 
-/* Headings */
-h1, h2, h3 {
-  color: #ffffff;
-}
-
-/* Buttons */
-button {
-  background-color: #7289da;
-  color: #ffffff;
+form input {
+  width: 100%;
+  padding: 10px;
+  margin: 10px 0;
   border: none;
-  padding: 8px 12px;
+  border-radius: 5px;
+  background-color: #202225;
+  color: #dcddde;
+}
+
+form input::placeholder {
+  color: #72767d;
+}
+
+form button {
+  width: 100%;
+  padding: 10px;
+  background-color: #7289da;
+  color: #fff;
+  border: none;
   border-radius: 5px;
   cursor: pointer;
   font-weight: 600;
   transition: background-color 0.2s ease;
 }
 
-button:hover {
+form button:hover {
   background-color: #5b6eae;
 }
 
-/* Inputs and forms */
-input, textarea {
-  width: 100%;
-  padding: 8px 10px;
-  margin-bottom: 10px;
-  border: none;
-  border-radius: 5px;
-  background-color: #202225;
-  color: #dcddde;
-  font-size: 14px;
+/* === Chat === */
+#chatContainer {
+  display: flex;
+  flex-direction: column;
+  max-width: 800px;
+  margin: 20px auto;
 }
 
-input::placeholder, textarea::placeholder {
-  color: #72767d;
-}
-
-/* Chat box */
 #chatBox {
   height: 400px;
   overflow-y: auto;
@@ -80,32 +85,95 @@ input::placeholder, textarea::placeholder {
   border-radius: 8px;
   padding: 10px;
   border: 1px solid #202225;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
 }
 
-#chatBox p {
-  margin: 5px 0;
-  padding: 5px 10px;
+.message {
+  display: flex;
+  flex-direction: column;
   background-color: #40444b;
-  border-radius: 5px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  max-width: 70%;
   word-break: break-word;
+  position: relative;
+  transition: background 0.2s;
 }
 
-/* Chat input area */
-#chatInput, #userInput {
+.message:hover {
+  background-color: #4f545c;
+}
+
+.message .username {
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 2px;
+}
+
+.message .timestamp {
+  font-size: 11px;
+  color: #72767d;
+  position: absolute;
+  right: 8px;
+  bottom: 4px;
+}
+
+#inputContainer {
+  display: flex;
   margin-top: 10px;
-  margin-right: 5px;
+  gap: 5px;
 }
 
-/* Form styling */
-form {
-  max-width: 400px;
-  margin-top: 20px;
+#chatInput {
+  flex: 1;
+  padding: 10px;
+  border-radius: 5px;
+  border: none;
+  background-color: #202225;
+  color: #dcddde;
 }
 
-/* Responsive adjustments */
+#sendBtn {
+  background-color: #7289da;
+  color: #fff;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.2s ease;
+}
+
+#sendBtn:hover {
+  background-color: #5b6eae;
+}
+
+/* === Responsive === */
 @media (max-width: 600px) {
-  nav {
-    flex-direction: column;
-    align-items: flex-start;
+  #chatContainer {
+    padding: 0 10px;
   }
+  .message {
+    max-width: 90%;
+  }
+  main {
+    margin: 20px 10px;
+  }
+}
+
+/* === Scrollbar styling === */
+#chatBox::-webkit-scrollbar {
+  width: 8px;
+}
+
+#chatBox::-webkit-scrollbar-track {
+  background: #2f3136;
+  border-radius: 5px;
+}
+
+#chatBox::-webkit-scrollbar-thumb {
+  background-color: #202225;
+  border-radius: 5px;
 }
