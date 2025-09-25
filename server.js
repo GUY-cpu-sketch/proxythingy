@@ -7,11 +7,9 @@ import sqlite3 from 'sqlite3';
 import cookieParser from 'cookie-parser';
 import crypto from 'crypto';
 
-// --- __dirname fix for ESM ---
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// --- Express setup ---
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
@@ -20,7 +18,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 app.use(cookieParser());
 
-// --- SQLite ---
 const db = new sqlite3.Database(path.join(__dirname, 'database.sqlite'), err => {
   if (err) console.error(err);
 });
@@ -30,10 +27,8 @@ db.run(`CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, 
 db.run(`CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY AUTOINCREMENT, user TEXT, message TEXT, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)`);
 db.run(`CREATE TABLE IF NOT EXISTS banned_users (username TEXT PRIMARY KEY)`);
 
-// --- Session store ---
 const sessions = {};
 
-// --- Login middleware ---
 function requireLogin(req, res, next) {
   const { sessionId } = req.cookies;
   if (sessionId && sessions[sessionId]) {
@@ -51,12 +46,19 @@ function requireLogin(req, res, next) {
   }
 }
 
-// --- Routes ---
+// --- Session endpoint ---
+app.get('/session', (req, res) => {
+  const { sessionId } = req.cookies;
+  if (sessionId && sessions[sessionId]) {
+    res.json({ username: sessions[sessionId] });
+  } else {
+    res.status(401).json({ error: 'Not logged in' });
+  }
+});
 
-// Register
+// --- Register ---
 app.post('/register', (req, res) => {
   const { username, password } = req.body;
-  console.log("Register attempt:", username);
   if (!username || !password) return res.json({ success: false, error: 'Missing fields' });
 
   db.run('INSERT INTO users (username, password) VALUES (?, ?)', [username, password], err => {
@@ -65,16 +67,13 @@ app.post('/register', (req, res) => {
     const sessionId = crypto.randomUUID();
     sessions[sessionId] = username;
     res.cookie('sessionId', sessionId, { httpOnly: true });
-    console.log("Register successful:", username);
     res.json({ success: true });
   });
 });
 
-// Login
+// --- Login ---
 app.post('/login', (req, res) => {
   const { username, password } = req.body;
-  console.log("Login attempt:", username);
-
   if (!username || !password) return res.json({ success: false, error: 'Missing fields' });
 
   db.get('SELECT * FROM banned_users WHERE username = ?', [username], (err, row) => {
@@ -87,13 +86,12 @@ app.post('/login', (req, res) => {
       const sessionId = crypto.randomUUID();
       sessions[sessionId] = username;
       res.cookie('sessionId', sessionId, { httpOnly: true });
-      console.log("Login successful:", username);
       res.json({ success: true });
     });
   });
 });
 
-// Logout
+// --- Logout ---
 app.get('/logout', (req, res) => {
   const { sessionId } = req.cookies;
   if (sessionId) delete sessions[sessionId];
@@ -101,7 +99,7 @@ app.get('/logout', (req, res) => {
   res.redirect('/login.html');
 });
 
-// Chat page
+// --- Chat page ---
 app.get('/chat', requireLogin, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'chat', 'index.html'));
 });
@@ -110,12 +108,12 @@ app.get('/chat', requireLogin, (req, res) => {
 const onlineUsers = new Set();
 io.on('connection', socket => {
 
-  // Prevent duplicate messages by only emitting messages via socket
+  // Send last 50 messages
   db.all('SELECT * FROM messages ORDER BY id DESC LIMIT 50', [], (err, rows) => {
     if (!err) rows.reverse().forEach(row => socket.emit('chat', { user: row.user, message: row.message, timestamp: row.timestamp }));
   });
 
-  // Register user
+  // Register username
   socket.on('register-user', username => {
     socket.username = username;
     onlineUsers.add(username);
@@ -126,10 +124,10 @@ io.on('connection', socket => {
   socket.on('send-chat', message => {
     if (!socket.username || !message.trim()) return;
 
-    // --- Bad word filter (strictness 3) ---
+    // Bad word filter
     const badWords = ["badword1","badword2","badword3"];
     const regex = new RegExp(`\\b(${badWords.join("|")})\\b`, "gi");
-    if (regex.test(message)) return; // silently block
+    if (regex.test(message)) return;
 
     db.run('INSERT INTO messages (user, message) VALUES (?, ?)', [socket.username, message], err => {
       if (!err) io.emit('chat', { user: socket.username, message, timestamp: new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) });
@@ -153,6 +151,5 @@ io.on('connection', socket => {
   });
 });
 
-// --- Start server ---
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
