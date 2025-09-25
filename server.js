@@ -166,6 +166,37 @@ io.on('connection', socket => {
     });
   });
 });
+// Bad words filter
+const badWordsList = {
+  1: ["Nigger","Faggot"],          // mild
+  2: ["Nigger","Faggot","Bitch"],
+  3: ["Nigger","Faggot","Bitch","Fuck"],
+  4: ["Nigger","Faggot","Bitch","Fuck","Shit"],
+  5: ["badword1","badword2","badword3","badword4","badword5","badword6"]
+};
+
+const strictness = 1; // <-- change this to control severity
+
+app.post('/send-message', requireLogin, (req, res) => {
+  const username = req.username;
+  let { message } = req.body;
+  if (!message) return res.status(400).json({ error: 'Empty message' });
+
+  // Filter bad words
+  const badWords = badWordsList[strictness];
+  const regex = new RegExp(`\\b(${badWords.join("|")})\\b`, "gi");
+  if (regex.test(message)) {
+    return res.status(400).json({ error: "Message contains inappropriate content" });
+  }
+
+  db.run('INSERT INTO messages (user, message) VALUES (?, ?)', [username, message], (err) => {
+    if (err) return res.status(500).json({ error: 'Database error' });
+
+    io.emit('chat', { user: username, message, timestamp: new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) });
+    res.json({ success: true });
+  });
+});
+
 
 // ---- Start server ----
 const PORT = process.env.PORT || 3000;
