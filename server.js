@@ -4,7 +4,6 @@ import { Server } from 'socket.io';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
 
 // ---- __dirname for ESM ----
 const __filename = fileURLToPath(import.meta.url);
@@ -16,23 +15,19 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 // ---- SQLite database ----
-let db;
-async function initDB() {
-  db = await open({
-    filename: path.join(__dirname, 'database.sqlite'),
-    driver: sqlite3.Database
-  });
+const db = new sqlite3.Database(path.join(__dirname, 'database.sqlite'), (err) => {
+  if (err) console.error('Database opening error:', err);
+});
 
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS messages (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user TEXT NOT NULL,
-      message TEXT NOT NULL,
-      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-}
-initDB();
+// Create messages table if it doesn't exist
+db.run(`
+  CREATE TABLE IF NOT EXISTS messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user TEXT NOT NULL,
+    message TEXT NOT NULL,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+  )
+`);
 
 // ---- Serve static files (your proxy site) ----
 app.use(express.static(path.join(__dirname, 'public')));
@@ -47,16 +42,17 @@ io.on('connection', socket => {
   console.log('A user connected');
 
   // Send last 50 messages to new user
-  db.all('SELECT * FROM messages ORDER BY id DESC LIMIT 50').then(rows => {
-    rows.reverse().forEach(row => {
-      socket.emit('chat', { user: row.user, message: row.message });
-    });
+  db.all('SELECT * FROM messages ORDER BY id DESC LIMIT 50', [], (err, rows) => {
+    if (err) return console.error(err);
+    rows.reverse().forEach(row => socket.emit('chat', { user: row.user, message: row.message }));
   });
 
   // Listen for new messages
-  socket.on('chat', async data => {
-    await db.run('INSERT INTO messages (user, message) VALUES (?, ?)', data.user, data.message);
-    io.emit('chat', data);
+  socket.on('chat', (data) => {
+    db.run('INSERT INTO messages (user, message) VALUES (?, ?)', [data.user, data.message], (err) => {
+      if (err) return console.error(err);
+      io.emit('chat', data);
+    });
   });
 
   socket.on('disconnect', () => console.log('A user disconnected'));
