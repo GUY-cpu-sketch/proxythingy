@@ -90,7 +90,7 @@ app.post("/logout", (req, res) => {
 
 // --- Socket.IO ---
 const onlineUsers = new Map(); // socket.id -> username
-const admins = ["AdminUser"]; // add your admin usernames here
+const admins = ["DEV"]; // add your admin usernames here
 
 io.on("connection", (socket) => {
   console.log("New connection:", socket.id);
