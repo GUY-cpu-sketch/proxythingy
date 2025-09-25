@@ -3,20 +3,22 @@ const chatForm = document.getElementById("chatForm");
 const chatInput = document.getElementById("chatInput");
 const userList = document.getElementById("userList");
 
-// --- Replace this with actual username from login flow ---
-const username = prompt("Enter your username:") || "Guest";
+// Use username from login
+const username = window.sessionData?.username;
+if (!username) {
+  alert("You must log in first!");
+  window.location.href = "/login.html";
+}
 
 const socket = io();
 socket.emit("register-user", username);
 
-// --- Receive messages ---
+// Receive messages
 socket.on("chat", (data) => addMessage(data));
 socket.on("system", (msg) => addMessage({ user: "SYSTEM", message: msg }));
-socket.on("clear-chat", () => {
-  chatBox.innerHTML = "";
-});
+socket.on("clear-chat", () => { chatBox.innerHTML = ""; });
 
-// --- Update user list ---
+// Update user list
 socket.on("update-users", (users) => {
   if (!userList) return;
   userList.innerHTML = "";
@@ -27,7 +29,7 @@ socket.on("update-users", (users) => {
   });
 });
 
-// --- Add message ---
+// Add message
 function addMessage({ user, message, timestamp }) {
   const div = document.createElement("div");
   div.className = "message";
@@ -36,7 +38,7 @@ function addMessage({ user, message, timestamp }) {
   chatBox.scrollTop = chatBox.scrollHeight;
 }
 
-// --- Send messages ---
+// Send messages
 chatForm.addEventListener("submit", (e) => {
   e.preventDefault();
   const msg = chatInput.value.trim();
