@@ -21,11 +21,11 @@ app.use(express.json());
 app.use(cookieParser());
 
 // ---- SQLite DB ----
-const db = new sqlite3.Database(path.join(__dirname, 'database.sqlite'), (err) => {
+const db = new sqlite3.Database(path.join(__dirname, 'database.sqlite'), err => {
   if (err) console.error('DB error:', err);
 });
 
-// Users table
+// ---- Create tables ----
 db.run(`
   CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -34,7 +34,6 @@ db.run(`
   )
 `);
 
-// Messages table
 db.run(`
   CREATE TABLE IF NOT EXISTS messages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -44,8 +43,39 @@ db.run(`
   )
 `);
 
+db.run(`
+  CREATE TABLE IF NOT EXISTS banned_users (
+    username TEXT PRIMARY KEY
+  )
+`);
+
 // ---- Session store ----
 const sessions = {};
+
+// ---- Helper middleware ----
+function requireLogin(req, res, next) {
+  const { sessionId } = req.cookies;
+  if (sessionId && sessions[sessionId]) {
+    const username = sessions[sessionId];
+
+    // Check if banned
+    db.get('SELECT * FROM banned_users WHERE username = ?', [username], (err, row) => {
+      if (row) {
+        res.clearCookie('sessionId');
+        return res.redirect('/login.html');
+      }
+      req.username = username;
+      next();
+    });
+  } else {
+    res.redirect('/login.html');
+  }
+}
+
+// ---- Session info endpoint ----
+app.get('/session', requireLogin, (req, res) => {
+  res.json({ username: req.username });
+});
 
 // ---- Register ----
 app.post('/register', (req, res) => {
@@ -71,14 +101,19 @@ app.post('/login', (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) return res.json({ success: false, error: 'Missing fields' });
 
-  db.get('SELECT * FROM users WHERE username = ? AND password = ?', [username, password], (err, row) => {
-    if (err) return res.json({ success: false, error: 'Database error' });
-    if (!row) return res.json({ success: false, error: 'Invalid username or password' });
+  // Check banned users
+  db.get('SELECT * FROM banned_users WHERE username = ?', [username], (err, row) => {
+    if (row) return res.json({ success: false, error: 'You are banned.' });
 
-    const sessionId = crypto.randomUUID();
-    sessions[sessionId] = username;
-    res.cookie('sessionId', sessionId, { httpOnly: true });
-    res.json({ success: true });
+    db.get('SELECT * FROM users WHERE username = ? AND password = ?', [username, password], (err, row) => {
+      if (err) return res.json({ success: false, error: 'Database error' });
+      if (!row) return res.json({ success: false, error: 'Invalid username or password' });
+
+      const sessionId = crypto.randomUUID();
+      sessions[sessionId] = username;
+      res.cookie('sessionId', sessionId, { httpOnly: true });
+      res.json({ success: true });
+    });
   });
 });
 
@@ -89,17 +124,6 @@ app.get('/logout', (req, res) => {
   res.clearCookie('sessionId');
   res.redirect('/login.html');
 });
-
-// ---- Protect chat ----
-function requireLogin(req, res, next) {
-  const { sessionId } = req.cookies;
-  if (sessionId && sessions[sessionId]) {
-    req.username = sessions[sessionId];
-    next();
-  } else {
-    res.redirect('/login.html');
-  }
-}
 
 // ---- Chat route ----
 app.get('/chat', requireLogin, (req, res) => {
@@ -114,6 +138,7 @@ app.post('/send-message', requireLogin, (req, res) => {
 
   db.run('INSERT INTO messages (user, message) VALUES (?, ?)', [username, message], (err) => {
     if (err) return res.status(500).json({ error: 'Database error' });
+
     io.emit('chat', { user: username, message, timestamp: new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) });
     res.json({ success: true });
   });
@@ -121,12 +146,25 @@ app.post('/send-message', requireLogin, (req, res) => {
 
 // ---- Socket.IO ----
 io.on('connection', socket => {
+  // Load last 50 messages
   db.all('SELECT * FROM messages ORDER BY id DESC LIMIT 50', [], (err, rows) => {
     if (err) return console.error(err);
     rows.reverse().forEach(row => socket.emit('chat', { user: row.user, message: row.message, timestamp: row.timestamp }));
   });
 
-  socket.on('disconnect', () => {});
+  // Admin kick
+  socket.on("admin-kick", targetUser => {
+    io.emit("kick", targetUser);
+  });
+
+  // Admin ban
+  socket.on("admin-ban", targetUser => {
+    // Add to banned_users table
+    db.run('INSERT OR IGNORE INTO banned_users (username) VALUES (?)', [targetUser], err => {
+      if (err) console.error(err);
+      io.emit("ban", targetUser);
+    });
+  });
 });
 
 // ---- Start server ----
