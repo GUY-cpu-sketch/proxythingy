@@ -4,13 +4,23 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Chat Room</title>
+  <link rel="stylesheet" href="../style.css">
 </head>
 <body>
-  <h1>Chat Room</h1>
-  <div id="chatBox" style="height:300px;overflow:auto;border:1px solid #ccc;padding:5px"></div>
-  <input id="chatInput" placeholder="Type a message..." />
-  <input id="userInput" placeholder="Your name" />
-  <button id="sendBtn">Send</button>
+  <nav>
+    <a href="/">Home</a>
+    <a href="/chat">Chat</a>
+    <a href="/register.html">Register</a>
+  </nav>
+
+  <div id="chatContainer">
+    <div id="chatBox"></div>
+    <div id="inputContainer">
+      <input id="userInput" placeholder="Your name" />
+      <input id="chatInput" placeholder="Type a message..." />
+      <button id="sendBtn">Send</button>
+    </div>
+  </div>
 
   <script type="module" src="./chat.js"></script>
 </body>
