@@ -1,8 +1,22 @@
 const socket = io();
+let username = "";
 
-// Register user after session check
-fetch('/session').then(r => r.json()).then(({ username }) => {
-  socket.emit('register-user', username);
+// Fetch session
+fetch('/session')
+  .then(r => r.json())
+  .then(data => {
+    username = data.username;
+    socket.emit('register-user', username);
+  })
+  .catch(() => window.location.href = '/login.html');
+
+// Send chat
+document.getElementById('sendBtn').addEventListener('click', () => {
+  const input = document.getElementById('chatInput');
+  const msg = input.value.trim();
+  if (!msg || !username) return;
+  socket.emit('send-chat', msg);
+  input.value = '';
 });
 
 // Receive messages
@@ -20,20 +34,12 @@ socket.on('update-users', users => {
   });
 });
 
-// Send chat
-document.getElementById('sendBtn').addEventListener('click', () => {
-  const msg = document.getElementById('chatInput').value.trim();
-  if (msg) {
-    socket.emit('send-chat', msg);
-    document.getElementById('chatInput').value = '';
-  }
-});
-
+// Add message to chat box
 function addMessage({ user, message, timestamp }) {
   const chatBox = document.getElementById('chatBox');
   const div = document.createElement('div');
   div.className = 'message';
-  div.innerHTML = `<span class="username">${user}</span><span class="msg">${message}</span><span class="timestamp">${timestamp}</span>`;
+  div.innerHTML = `<span class="username">${user}</span>: <span class="msg">${message}</span> <span class="timestamp">${timestamp}</span>`;
   chatBox.appendChild(div);
   chatBox.scrollTop = chatBox.scrollHeight;
 }
