@@ -4,6 +4,8 @@ import { Server } from 'socket.io';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import sqlite3 from 'sqlite3';
+import cookieParser from 'cookie-parser';
+import crypto from 'crypto';
 
 // ---- __dirname for ESM ----
 const __filename = fileURLToPath(import.meta.url);
@@ -16,14 +18,15 @@ const io = new Server(server);
 
 // ---- Middleware ----
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.json()); // parse JSON body
+app.use(express.json());
+app.use(cookieParser());
 
 // ---- SQLite database ----
 const db = new sqlite3.Database(path.join(__dirname, 'database.sqlite'), (err) => {
   if (err) console.error('Database opening error:', err);
 });
 
-// Create users table if it doesn't exist
+// Users table
 db.run(`
   CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -32,7 +35,7 @@ db.run(`
   )
 `);
 
-// Create messages table if it doesn't exist
+// Messages table
 db.run(`
   CREATE TABLE IF NOT EXISTS messages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -42,10 +45,12 @@ db.run(`
   )
 `);
 
+// Sessions store in memory (simple)
+const sessions = {};
+
 // ---- Registration endpoint ----
 app.post('/register', (req, res) => {
   const { username, password } = req.body;
-
   if (!username || !password) return res.json({ success: false, error: 'Missing fields' });
 
   db.run(
@@ -53,13 +58,58 @@ app.post('/register', (req, res) => {
     [username, password],
     (err) => {
       if (err) return res.json({ success: false, error: 'Username may already exist.' });
+
+      // Create session
+      const sessionId = crypto.randomUUID();
+      sessions[sessionId] = username;
+
+      // Set cookie
+      res.cookie('sessionId', sessionId, { httpOnly: true });
       res.json({ success: true });
     }
   );
 });
 
-// ---- Chat route ----
-app.get('/chat', (req, res) => {
+// ---- Login endpoint ----
+app.post('/login', (req, res) => {
+  const { username, password } = req.body;
+  if (!username || !password) return res.json({ success: false, error: 'Missing fields' });
+
+  db.get('SELECT * FROM users WHERE username = ? AND password = ?', [username, password], (err, row) => {
+    if (err) return res.json({ success: false, error: 'Database error' });
+    if (!row) return res.json({ success: false, error: 'Invalid username or password' });
+
+    // Create session
+    const sessionId = crypto.randomUUID();
+    sessions[sessionId] = username;
+
+    // Set cookie
+    res.cookie('sessionId', sessionId, { httpOnly: true });
+    res.json({ success: true });
+  });
+});
+
+// ---- Logout endpoint ----
+app.get('/logout', (req, res) => {
+  const { sessionId } = req.cookies;
+  if (sessionId) delete sessions[sessionId];
+  res.clearCookie('sessionId');
+  res.redirect('/login.html');
+});
+
+// ---- Middleware to protect chat ----
+function requireLogin(req, res, next) {
+  const { sessionId } = req.cookies;
+  if (sessionId && sessions[sessionId]) {
+    req.username = sessions[sessionId];
+    next();
+  } else {
+    res.redirect('/login.html');
+  }
+}
+
+// ---- Chat route (protected) ----
+app.get('/chat', requireLogin, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'chat', 'index.html'));
 });
 
