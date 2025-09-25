@@ -1,200 +1,194 @@
-/* === General Body === */
-body {
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+/* ---------- Global ---------- */
+* {
+  box-sizing: border-box;
   margin: 0;
   padding: 0;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
   background-color: #36393f;
   color: #dcddde;
+  min-height: 100vh;
 }
 
-/* === Navbar === */
-nav {
-  background-color: #2f3136;
+/* ---------- Top Nav ---------- */
+.top-nav {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  padding: 10px 20px;
-  gap: 15px;
-  border-bottom: 1px solid #202225;
-}
-
-nav a {
-  color: #fff;
-  text-decoration: none;
-  font-weight: 500;
-  padding: 5px 10px;
-  border-radius: 5px;
-  transition: background 0.2s ease;
-}
-
-nav a:hover {
-  background-color: #40444b;
-}
-
-/* === Forms === */
-main {
-  max-width: 400px;
-  margin: 50px auto;
   background-color: #2f3136;
-  padding: 30px;
-  border-radius: 10px;
-  box-shadow: 0 0 10px #000;
+  padding: 0.5rem 1rem;
+  height: 50px;
 }
 
-form input {
-  width: 100%;
-  padding: 10px;
-  margin: 10px 0;
-  border: none;
-  border-radius: 5px;
-  background-color: #202225;
-  color: #dcddde;
+.top-nav .logo {
+  font-weight: bold;
+  font-size: 1.2rem;
+  color: #fff;
 }
 
-form input::placeholder {
-  color: #72767d;
-}
-
-form button {
-  width: 100%;
-  padding: 10px;
+.nav-btn {
   background-color: #7289da;
   color: #fff;
   border: none;
-  border-radius: 5px;
+  padding: 0.4rem 0.8rem;
+  margin-left: 0.5rem;
+  border-radius: 4px;
   cursor: pointer;
-  font-weight: 600;
-  transition: background-color 0.2s ease;
-}
-
-form button:hover {
-  background-color: #5b6eae;
-}
-
-/* === Chat === */
-#chatContainer {
-  display: flex;
-  flex-direction: column;
-  max-width: 800px;
-  margin: 20px auto;
-}
-
-#chatBox {
-  height: 400px;
-  overflow-y: auto;
-  background-color: #2f3136;
-  border-radius: 8px;
-  padding: 10px;
-  border: 1px solid #202225;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.message {
-  display: flex;
-  flex-direction: column;
-  background-color: #40444b;
-  padding: 8px 12px;
-  border-radius: 8px;
-  max-width: 70%;
-  word-break: break-word;
-  position: relative;
+  font-size: 0.9rem;
   transition: background 0.2s;
 }
 
-.message:hover {
-  background-color: #4f545c;
+.nav-btn:hover {
+  background-color: #5b6eae;
+}
+
+.hidden {
+  display: none;
+}
+
+/* ---------- Chat Panel ---------- */
+.chat-panel {
+  position: fixed;
+  bottom: 0;
+  right: 20px;
+  width: 350px;
+  max-height: 500px;
+  background-color: #2f3136;
+  border-radius: 8px 8px 0 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 0 10px rgba(0,0,0,0.5);
+}
+
+.chat-box {
+  flex: 1;
+  padding: 10px;
+  overflow-y: auto;
+  border-bottom: 1px solid #202225;
+}
+
+.message {
+  margin-bottom: 5px;
+  font-size: 0.9rem;
 }
 
 .message .username {
   font-weight: bold;
-  color: #fff;
-  margin-bottom: 2px;
+  color: #7289da;
+  margin-right: 5px;
 }
 
-.message .timestamp {
-  font-size: 11px;
-  color: #72767d;
-  position: absolute;
-  right: 8px;
-  bottom: 4px;
-}
-
-#inputContainer {
-  display: flex;
-  margin-top: 10px;
-  gap: 5px;
-}
-
-#chatInput {
-  flex: 1;
-  padding: 10px;
-  border-radius: 5px;
-  border: none;
-  background-color: #202225;
+.message .msg {
   color: #dcddde;
 }
 
-#sendBtn {
-  background-color: #7289da;
-  color: #fff;
-  border: none;
-  padding: 10px 15px;
-  border-radius: 5px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: background-color 0.2s ease;
+.message .timestamp {
+  float: right;
+  font-size: 0.7rem;
+  color: #72767d;
 }
 
-#sendBtn:hover {
+.chat-form {
+  display: flex;
+  padding: 5px;
+  background-color: #202225;
+}
+
+.chat-form input {
+  flex: 1;
+  padding: 0.4rem;
+  border-radius: 4px;
+  border: none;
+  margin-right: 5px;
+  background-color: #40444b;
+  color: #dcddde;
+}
+
+.chat-form input:focus {
+  outline: none;
+  background-color: #4f545c;
+}
+
+.chat-form button {
+  background-color: #7289da;
+  border: none;
+  color: #fff;
+  padding: 0 0.8rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.chat-form button:hover {
   background-color: #5b6eae;
 }
 
-/* === Responsive === */
-@media (max-width: 600px) {
-  #chatContainer {
-    padding: 0 10px;
-  }
-  .message {
-    max-width: 90%;
-  }
-  main {
-    margin: 20px 10px;
-  }
-}
-
-/* === Scrollbar styling === */
-#chatBox::-webkit-scrollbar {
-  width: 8px;
-}
-
-#chatBox::-webkit-scrollbar-track {
-  background: #2f3136;
-  border-radius: 5px;
-}
-
-#chatBox::-webkit-scrollbar-thumb {
-  background-color: #202225;
-  border-radius: 5px;
-}
-#chatContainer {
-  display: flex;
-  max-width: 1000px;
-  margin: 20px auto;
-  gap: 10px;
-}
-
-#userListContainer {
-  width: 200px;
+/* ---------- User List ---------- */
+.user-list {
+  list-style: none;
+  padding: 5px 10px;
   background-color: #2f3136;
-  padding: 10px;
-  border-radius: 8px;
+  border-top: 1px solid #202225;
+}
+
+.user-list li {
+  padding: 2px 0;
+  font-size: 0.85rem;
   color: #fff;
 }
 
-#chatBoxContainer {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
+/* ---------- Login/Register ---------- */
+.auth-container {
+  width: 350px;
+  margin: 5% auto;
+  padding: 2rem;
+  background-color: #2f3136;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.5);
+  text-align: center;
 }
 
+.auth-container h1 {
+  margin-bottom: 1rem;
+  color: #fff;
+}
+
+.auth-container input {
+  width: 100%;
+  padding: 0.5rem;
+  margin-bottom: 1rem;
+  border-radius: 4px;
+  border: none;
+  background-color: #40444b;
+  color: #dcddde;
+}
+
+.auth-container input:focus {
+  outline: none;
+  background-color: #4f545c;
+}
+
+.auth-container button {
+  width: 100%;
+  padding: 0.5rem;
+  background-color: #7289da;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.auth-container button:hover {
+  background-color: #5b6eae;
+}
+
+.auth-container a {
+  color: #7289da;
+  text-decoration: none;
+}
+
+.auth-container a:hover {
+  text-decoration: underline;
+}
