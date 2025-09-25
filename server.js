@@ -12,8 +12,9 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-app.use(express.static(path.join(__dirname, "public")));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, "public")));
 
 // --- SQLite setup ---
 const db = new sqlite3.Database("./database.sqlite", (err) => {
@@ -28,19 +29,23 @@ db.run(`CREATE TABLE IF NOT EXISTS users (
 )`);
 
 // --- Routes ---
+// Serve login/register pages
+app.get("/login.html", (req, res) => res.sendFile(path.join(__dirname, "public/login.html")));
+app.get("/register.html", (req, res) => res.sendFile(path.join(__dirname, "public/register.html")));
+
+// Register new user
 app.post("/register", (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) return res.json({ success: false, message: "Missing fields" });
 
   const stmt = db.prepare("INSERT INTO users(username, password) VALUES(?, ?)");
   stmt.run(username, password, function(err) {
-    if (err) {
-      return res.json({ success: false, message: "Username already exists" });
-    }
+    if (err) return res.json({ success: false, message: "Username already exists" });
     res.json({ success: true });
   });
 });
 
+// Login user
 app.post("/login", (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) return res.json({ success: false, message: "Missing fields" });
@@ -52,6 +57,11 @@ app.post("/login", (req, res) => {
   });
 });
 
+// Logout
+app.post("/logout", (req, res) => {
+  res.json({ success: true });
+});
+
 // --- Chat ---
 const onlineUsers = new Map();
 const ADMIN_USER = "DEV";
@@ -59,10 +69,8 @@ const ADMIN_USER = "DEV";
 io.on("connection", (socket) => {
   console.log("New connection:", socket.id);
 
-  // Expect client to send username immediately
   socket.on("register-user", (username) => {
     if (!username) return;
-
     socket.username = username;
     onlineUsers.set(socket.id, username);
 
@@ -104,19 +112,6 @@ io.on("connection", (socket) => {
     io.emit("system", `${socket.username} left the chat`);
   });
 });
-
-// --- Logout route ---
-app.post("/logout", (req, res) => {
-  res.json({ success: true });
-});
-
-app.get("/debug-users", (req, res) => {
-  db.all("SELECT id, username FROM users", [], (err, rows) => {
-    if (err) return res.status(500).send(err.message);
-    res.json(rows);
-  });
-});
-
 
 // --- Start server ---
 const PORT = process.env.PORT || 3000;
