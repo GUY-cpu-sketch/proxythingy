@@ -16,8 +16,7 @@ socket.on("chat", data => {
 
 sendBtn.addEventListener("click", () => {
   if (!chatInput.value || !userInput.value) return;
-  const data = { user: userInput.value, message: chatInput.value };
-  socket.emit("chat", data);
+  socket.emit("chat", { user: userInput.value, message: chatInput.value });
   chatInput.value = "";
 });
 
