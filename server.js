@@ -196,6 +196,19 @@ app.post('/send-message', requireLogin, (req, res) => {
     res.json({ success: true });
   });
 });
+const onlineUsers = new Set();
+
+io.on('connection', socket => {
+  socket.on('user-connected', username => {
+    onlineUsers.add(username);
+    io.emit('update-users', Array.from(onlineUsers));
+  });
+
+  socket.on('disconnect', () => {
+    // remove user from onlineUsers
+    // Optional: track sessionId -> username
+  });
+});
 
 
 // ---- Start server ----
