@@ -110,6 +110,14 @@ app.post("/logout", (req, res) => {
   res.json({ success: true });
 });
 
+app.get("/debug-users", (req, res) => {
+  db.all("SELECT id, username FROM users", [], (err, rows) => {
+    if (err) return res.status(500).send(err.message);
+    res.json(rows);
+  });
+});
+
+
 // --- Start server ---
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
