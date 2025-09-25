@@ -1,28 +1,41 @@
+// public/chat.js
+
+import { io } from "https://cdn.socket.io/4.8.1/socket.io.esm.min.js";
+
 const chatForm = document.getElementById("chatForm");
 const chatInput = document.getElementById("chatInput");
 const chatBox = document.getElementById("chatBox");
 
-const socket = io({ auth: { session: window.sessionData } });
+// Connect with session auth
+const socket = io({
+  auth: { session: window.sessionData }
+});
 
-socket.on("chat", data => {
+// Listen for chat messages
+socket.on("chat", (data) => {
   const p = document.createElement("p");
   p.textContent = `${data.user}: ${data.message}`;
   chatBox.appendChild(p);
 });
 
-socket.on("system", msg => {
+// System messages
+socket.on("system", (msg) => {
   const p = document.createElement("p");
   p.textContent = `[SYSTEM] ${msg}`;
-  p.style.color="red";
+  p.style.color = "red";
   chatBox.appendChild(p);
 });
 
-socket.on("clear", ()=> chatBox.innerHTML="");
+// Clear messages
+socket.on("clear", () => {
+  chatBox.innerHTML = "";
+});
 
-chatForm.addEventListener("submit", e=>{
+// Send messages
+chatForm.addEventListener("submit", (e) => {
   e.preventDefault();
   const msg = chatInput.value.trim();
-  if(!msg) return;
+  if (!msg) return;
   socket.emit("chat", msg);
-  chatInput.value="";
+  chatInput.value = "";
 });
