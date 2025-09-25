@@ -3,20 +3,104 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chat Room</title>
+  <title>____________</title>
   <link rel="stylesheet" href="../style.css">
+  <style>
+    #chatContainer {
+      display: flex;
+      flex-direction: column;
+      max-width: 800px;
+      margin: 20px auto;
+    }
+
+    #chatBox {
+      height: 400px;
+      overflow-y: auto;
+      background-color: #2f3136;
+      border-radius: 8px;
+      padding: 10px;
+      border: 1px solid #202225;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .message {
+      display: flex;
+      flex-direction: column;
+      background-color: #40444b;
+      padding: 8px 12px;
+      border-radius: 8px;
+      max-width: 70%;
+      word-break: break-word;
+      position: relative;
+    }
+
+    .message .username {
+      font-weight: bold;
+      color: #fff;
+      margin-bottom: 2px;
+    }
+
+    .message .timestamp {
+      font-size: 11px;
+      color: #72767d;
+      position: absolute;
+      right: 8px;
+      bottom: 4px;
+    }
+
+    #inputContainer {
+      display: flex;
+      margin-top: 10px;
+      gap: 5px;
+    }
+
+    #chatInput {
+      flex: 1;
+      padding: 10px;
+      border-radius: 5px;
+      border: none;
+      background-color: #202225;
+      color: #dcddde;
+    }
+
+    #sendBtn {
+      background-color: #7289da;
+      color: #fff;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background-color 0.2s ease;
+    }
+
+    #sendBtn:hover {
+      background-color: #5b6eae;
+    }
+
+    @media (max-width: 600px) {
+      #chatContainer {
+        padding: 0 10px;
+      }
+      .message {
+        max-width: 90%;
+      }
+    }
+  </style>
 </head>
 <body>
   <nav>
     <a href="/">Home</a>
     <a href="/chat">Chat</a>
     <a href="/register.html">Register</a>
+    <a href="/logout">Logout</a>
   </nav>
 
   <div id="chatContainer">
     <div id="chatBox"></div>
     <div id="inputContainer">
-      <input id="userInput" placeholder="Your name" />
       <input id="chatInput" placeholder="Type a message..." />
       <button id="sendBtn">Send</button>
     </div>
