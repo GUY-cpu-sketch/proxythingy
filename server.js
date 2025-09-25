@@ -16,14 +16,13 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-// ---- Middleware ----
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 app.use(cookieParser());
 
-// ---- SQLite database ----
+// ---- SQLite DB ----
 const db = new sqlite3.Database(path.join(__dirname, 'database.sqlite'), (err) => {
-  if (err) console.error('Database opening error:', err);
+  if (err) console.error('DB error:', err);
 });
 
 // Users table
@@ -45,10 +44,10 @@ db.run(`
   )
 `);
 
-// Sessions store in memory (simple)
+// ---- Session store ----
 const sessions = {};
 
-// ---- Registration endpoint ----
+// ---- Register ----
 app.post('/register', (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) return res.json({ success: false, error: 'Missing fields' });
@@ -59,18 +58,15 @@ app.post('/register', (req, res) => {
     (err) => {
       if (err) return res.json({ success: false, error: 'Username may already exist.' });
 
-      // Create session
       const sessionId = crypto.randomUUID();
       sessions[sessionId] = username;
-
-      // Set cookie
       res.cookie('sessionId', sessionId, { httpOnly: true });
       res.json({ success: true });
     }
   );
 });
 
-// ---- Login endpoint ----
+// ---- Login ----
 app.post('/login', (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) return res.json({ success: false, error: 'Missing fields' });
@@ -79,17 +75,14 @@ app.post('/login', (req, res) => {
     if (err) return res.json({ success: false, error: 'Database error' });
     if (!row) return res.json({ success: false, error: 'Invalid username or password' });
 
-    // Create session
     const sessionId = crypto.randomUUID();
     sessions[sessionId] = username;
-
-    // Set cookie
     res.cookie('sessionId', sessionId, { httpOnly: true });
     res.json({ success: true });
   });
 });
 
-// ---- Logout endpoint ----
+// ---- Logout ----
 app.get('/logout', (req, res) => {
   const { sessionId } = req.cookies;
   if (sessionId) delete sessions[sessionId];
@@ -97,7 +90,7 @@ app.get('/logout', (req, res) => {
   res.redirect('/login.html');
 });
 
-// ---- Middleware to protect chat ----
+// ---- Protect chat ----
 function requireLogin(req, res, next) {
   const { sessionId } = req.cookies;
   if (sessionId && sessions[sessionId]) {
@@ -108,32 +101,34 @@ function requireLogin(req, res, next) {
   }
 }
 
-// ---- Chat route (protected) ----
+// ---- Chat route ----
 app.get('/chat', requireLogin, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'chat', 'index.html'));
 });
 
-// ---- Socket.IO chat ----
-io.on('connection', socket => {
-  console.log('A user connected');
+// ---- Send message ----
+app.post('/send-message', requireLogin, (req, res) => {
+  const username = req.username;
+  const { message } = req.body;
+  if (!message) return res.status(400).json({ error: 'Empty message' });
 
-  // Send last 50 messages
-  db.all('SELECT * FROM messages ORDER BY id DESC LIMIT 50', [], (err, rows) => {
-    if (err) return console.error(err);
-    rows.reverse().forEach(row => socket.emit('chat', { user: row.user, message: row.message }));
+  db.run('INSERT INTO messages (user, message) VALUES (?, ?)', [username, message], (err) => {
+    if (err) return res.status(500).json({ error: 'Database error' });
+    io.emit('chat', { user: username, message, timestamp: new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) });
+    res.json({ success: true });
   });
-
-  // Listen for new messages
-  socket.on('chat', (data) => {
-    db.run('INSERT INTO messages (user, message) VALUES (?, ?)', [data.user, data.message], (err) => {
-      if (err) return console.error(err);
-      io.emit('chat', data);
-    });
-  });
-
-  socket.on('disconnect', () => console.log('A user disconnected'));
 });
 
-// ---- Use Render's PORT ----
+// ---- Socket.IO ----
+io.on('connection', socket => {
+  db.all('SELECT * FROM messages ORDER BY id DESC LIMIT 50', [], (err, rows) => {
+    if (err) return console.error(err);
+    rows.reverse().forEach(row => socket.emit('chat', { user: row.user, message: row.message, timestamp: row.timestamp }));
+  });
+
+  socket.on('disconnect', () => {});
+});
+
+// ---- Start server ----
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
