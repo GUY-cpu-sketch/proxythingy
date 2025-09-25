@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>________________</title>
+  <title>ProxyThingy Chat</title>
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
   <!-- Top nav -->
   <nav class="top-nav">
     <span class="logo">ProxyThingy</span>
-    <button id="chatBtn" class="nav-btn">Chat</button>
-    <button id="logoutBtn" class="nav-btn">Logout</button>
+    <button id="chatBtn" class="nav-btn hidden">Chat</button>
+    <button id="logoutBtn" class="nav-btn hidden">Logout</button>
   </nav>
 
   <!-- Chat panel -->
@@ -26,16 +26,28 @@
 
   <script type="module" src="/chat/chat.js"></script>
   <script>
+    // Make sure user is logged in
     const chatBtn = document.getElementById("chatBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
     const chatPanel = document.getElementById("chatPanel");
 
+    if (!window.sessionData?.username) {
+      window.location.href = "/login.html";
+    } else {
+      // Show nav buttons
+      chatBtn.classList.remove("hidden");
+      logoutBtn.classList.remove("hidden");
+    }
+
+    // Chat toggle
     chatBtn.addEventListener("click", () => {
       chatPanel.classList.toggle("hidden");
     });
 
-    const logoutBtn = document.getElementById("logoutBtn");
+    // Logout
     logoutBtn.addEventListener("click", async () => {
       await fetch("/logout", { method: "POST" });
+      window.sessionData = null;
       window.location.href = "/login.html";
     });
   </script>
