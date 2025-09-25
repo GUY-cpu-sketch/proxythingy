@@ -131,3 +131,19 @@ socket.on("chat", data => {
     if (data.user !== username) notificationSound.play();
   });
 });
+// Notify server of username
+fetch('/session').then(r => r.json()).then(({ username }) => {
+  socket.emit('user-connected', username);
+});
+
+// Update user list
+socket.on('update-users', users => {
+  const userList = document.getElementById('userList');
+  if (!userList) return;
+  userList.innerHTML = '';
+  users.forEach(u => {
+    const li = document.createElement('li');
+    li.textContent = u;
+    userList.appendChild(li);
+  });
+});
