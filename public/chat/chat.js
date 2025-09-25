@@ -121,3 +121,13 @@ socket.on("ban", target => {
     }
   });
 });
+// Play sound on new message
+const notificationSound = new Audio('/sounds/notification.mp3'); // place sound file in /public/sounds
+
+socket.on("chat", data => {
+  addMessage(data);
+  // Notify if message not from self
+  fetch('/session').then(r => r.json()).then(({ username }) => {
+    if (data.user !== username) notificationSound.play();
+  });
+});
