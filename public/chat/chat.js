@@ -63,28 +63,23 @@ if (!sessionData || !sessionData.username) {
     const message = chatInput.value.trim();
     if (!message) return;
 
-    // Admin commands
+    // --- Admin commands ---
     if (username === "DEV") {
-      if (message.startsWith("/kick ")) {
-        socket.emit("chat", message);
-        chatInput.value = "";
-        return;
-      }
-      if (message.startsWith("/clear") || message.startsWith("/mute ")) {
-        socket.emit("chat", message);
+      if (message.startsWith("/kick ") || message.startsWith("/clear") || message.startsWith("/mute ")) {
+        socket.emit("chat", message); // Send to server
         chatInput.value = "";
         return;
       }
     }
 
-    // Handle whispers and replies
+    // --- Whispers & replies (anyone can use) ---
     if (message.startsWith("/whisper ") || message.startsWith("/r ")) {
       socket.emit("chat", message);
       chatInput.value = "";
       return;
     }
 
-    // Normal message
+    // --- Normal chat message ---
     socket.emit("chat", message);
     chatInput.value = "";
   });
