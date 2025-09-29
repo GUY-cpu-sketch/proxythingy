@@ -24,6 +24,15 @@ if (!sessionData || !sessionData.username) {
     chatBox.scrollTop = chatBox.scrollHeight;
   });
 
+  // --- Whispers ---
+  socket.on("whisper", ({ from, message }) => {
+    const p = document.createElement("p");
+    p.style.color = "purple";
+    p.innerHTML = `<em>(Whisper) ${from}:</em> ${message}`;
+    chatBox.appendChild(p);
+    chatBox.scrollTop = chatBox.scrollHeight;
+  });
+
   // --- System messages ---
   socket.on("system", msg => {
     const p = document.createElement("p");
@@ -69,8 +78,35 @@ if (!sessionData || !sessionData.username) {
         chatInput.value = "";
         return;
       }
+      if (message.startsWith("/mute ")) {
+        const parts = message.split(" ");
+        const target = parts[1];
+        const duration = parts[2] || "60";
+        socket.emit("adminMute", { target, duration });
+        chatInput.value = "";
+        return;
+      }
     }
 
+    // --- Handle /whisper and /r locally ---
+    if (message.startsWith("/whisper ")) {
+      // Format: /whisper username message
+      const parts = message.split(" ");
+      const target = parts[1];
+      const msgText = parts.slice(2).join(" ");
+      socket.emit("chat", message); // handled server-side
+      chatInput.value = "";
+      return;
+    }
+
+    if (message.startsWith("/r ")) {
+      const replyMsg = message.slice(3);
+      socket.emit("chat", message); // handled server-side
+      chatInput.value = "";
+      return;
+    }
+
+    // Normal message
     socket.emit("chat", message);
     chatInput.value = "";
   });
