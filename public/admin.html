@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Panel</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="container admin-container">
+  <h1>Admin Panel</h1>
+  <button id="refresh">Refresh Messages</button>
+  <table id="messagesTable">
+    <thead>
+      <tr>
+        <th>Time</th>
+        <th>User</th>
+        <th>IP</th>
+        <th>Message</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+<script type="module">
+  const tableBody = document.querySelector("#messagesTable tbody");
+  const refreshBtn = document.getElementById("refresh");
+  const user = prompt("Enter admin username:"); // only DEV can view
+
+  async function loadMessages() {
+    tableBody.innerHTML = "";
+    const res = await fetch(`/admin/messages?user=${user}`);
+    const data = await res.json();
+    data.forEach(m => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${new Date(m.timestamp).toLocaleString()}</td>
+                      <td>${m.username}</td>
+                      <td>${m.ip}</td>
+                      <td>${m.message}</td>`;
+      tableBody.appendChild(tr);
+    });
+  }
+
+  refreshBtn.addEventListener("click", loadMessages);
+  loadMessages();
+</script>
+</body>
+</html>
