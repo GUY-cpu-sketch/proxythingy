@@ -10,9 +10,10 @@ if (!window.sessionData || !window.sessionData.username) {
 } else {
 
   const socket = io({ auth: { username: window.sessionData.username } });
+  const username = window.sessionData.username;
 
   // --- Chat messages ---
-  socket.off("chat").on("chat", data => {
+  socket.on("chat", data => {
     const p = document.createElement("p");
     p.innerHTML = `<strong>${data.user}:</strong> ${data.message}`;
     chatBox.appendChild(p);
@@ -20,7 +21,7 @@ if (!window.sessionData || !window.sessionData.username) {
   });
 
   // --- System messages ---
-  socket.off("system").on("system", msg => {
+  socket.on("system", msg => {
     const p = document.createElement("p");
     p.style.fontStyle = "italic";
     p.style.color = "#999";
@@ -30,7 +31,7 @@ if (!window.sessionData || !window.sessionData.username) {
   });
 
   // --- User list ---
-  socket.off("userList").on("userList", users => {
+  socket.on("userList", users => {
     userListEl.innerHTML = "";
     users.forEach(u => {
       const li = document.createElement("li");
@@ -39,14 +40,19 @@ if (!window.sessionData || !window.sessionData.username) {
     });
   });
 
-  // --- Send chat message ---
+  // --- Muted warning ---
+  socket.on("muted", info => {
+    const untilTime = new Date(info.until).toLocaleTimeString();
+    alert(`⛔ ${info.reason}. You are muted until ${untilTime}.`);
+  });
+
+  // --- Send chat messages ---
   chatForm.addEventListener("submit", e => {
     e.preventDefault();
     const message = chatInput.value.trim();
     if (!message) return;
 
-    // Admin commands
-    const username = window.sessionData.username;
+    // --- Admin commands (DEV only) ---
     if (username === "DEV") {
       if (message.startsWith("/kick ")) {
         const target = message.split(" ")[1];
@@ -59,46 +65,20 @@ if (!window.sessionData || !window.sessionData.username) {
         chatInput.value = "";
         return;
       }
+      if (message.startsWith("/mute ")) {
+        const parts = message.split(" ");
+        const target = parts[1];
+        const minutes = parseInt(parts[2], 10);
+        if (target && !isNaN(minutes)) {
+          socket.emit("adminMute", { target, minutes });
+        }
+        chatInput.value = "";
+        return;
+      }
     }
 
+    // --- Normal message ---
     socket.emit("chat", message);
     chatInput.value = "";
   });
 }
-const socket = io({ auth: { session: window.sessionData } });
-
-const chatForm = document.getElementById("chatForm");
-const chatInput = document.getElementById("chatInput");
-const chatBox = document.getElementById("chatBox");
-
-// Receive chat messages
-socket.on("chat", (data) => {
-  const p = document.createElement("p");
-  p.textContent = `${data.user}: ${data.message}`;
-  chatBox.appendChild(p);
-});
-
-// System messages
-socket.on("system", (msg) => {
-  const p = document.createElement("p");
-  p.classList.add("system-message");
-  p.textContent = msg;
-  chatBox.appendChild(p);
-});
-
-// Muted warning
-socket.on("muted", (info) => {
-  const untilTime = new Date(info.until).toLocaleTimeString();
-  alert(`⛔ ${info.reason}. You are muted until ${untilTime}.`);
-});
-
-// Send chat messages
-chatForm.addEventListener("submit", (e) => {
-  e.preventDefault();
-  const message = chatInput.value.trim();
-  if (message !== "") {
-    socket.emit("chat", message);
-    chatInput.value = "";
-  }
-});
-
