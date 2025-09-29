@@ -14,6 +14,9 @@ if (!sessionData || !sessionData.username) {
   const username = sessionData.username;
   const socket = io({ auth: { username } });
 
+  // Tell server this is a chat.html client
+  socket.emit("registerChatClient");
+
   // --- Normal chat ---
   socket.on("chat", data => {
     const p = document.createElement("p");
