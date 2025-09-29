@@ -9,7 +9,6 @@
 <body>
 <div class="container admin-container">
   <h1>Admin Panel</h1>
-  <button id="refresh">Refresh Messages</button>
   <table id="messagesTable">
     <thead>
       <tr>
@@ -22,27 +21,54 @@
     <tbody></tbody>
   </table>
 </div>
+
 <script type="module">
+  import { io } from "https://cdn.socket.io/4.7.2/socket.io.esm.min.js";
+
   const tableBody = document.querySelector("#messagesTable tbody");
-  const refreshBtn = document.getElementById("refresh");
   const user = prompt("Enter admin username:"); // only DEV can view
 
+  // Connect to Socket.IO with username
+  const socket = io({ auth: { username: user } });
+
+  // --- Add message to table ---
+  function addMessageToTable(msg) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${new Date(msg.timestamp).toLocaleString()}</td>
+                    <td>${msg.user}</td>
+                    <td>${msg.ip}</td>
+                    <td>${msg.message}</td>`;
+    tableBody.appendChild(tr);
+  }
+
+  // --- Initial load from server ---
   async function loadMessages() {
     tableBody.innerHTML = "";
     const res = await fetch(`/admin/messages?user=${user}`);
     const data = await res.json();
-    data.forEach(m => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${new Date(m.timestamp).toLocaleString()}</td>
-                      <td>${m.username}</td>
-                      <td>${m.ip}</td>
-                      <td>${m.message}</td>`;
-      tableBody.appendChild(tr);
-    });
+    data.forEach(addMessageToTable);
   }
 
-  refreshBtn.addEventListener("click", loadMessages);
   loadMessages();
+
+  // --- Live updates via Socket.IO ---
+  socket.on("chat", msg => addMessageToTable(msg));
+  socket.on("whisper", ({ from, message }) => {
+    addMessageToTable({
+      timestamp: Date.now(),
+      user: from + " (whisper)",
+      ip: "Unknown",
+      message
+    });
+  });
+  socket.on("system", sysMsg => {
+    addMessageToTable({
+      timestamp: Date.now(),
+      user: "System",
+      ip: "N/A",
+      message: sysMsg
+    });
+  });
 </script>
 </body>
 </html>
