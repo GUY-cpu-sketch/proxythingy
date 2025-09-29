@@ -175,8 +175,27 @@ button:hover {
 @media(max-width: 768px) {
   #chatContainer {
     height: 500px;
-  }
+}
+
   .user-list {
     display: none;
+    .admin-container table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed; /* allows width settings to work */
+}
+
+.admin-container th, .admin-container td {
+  padding: 10px;
+  border: 1px solid #ccc;
+  text-align: left;
+  word-wrap: break-word;
+}
+
+.admin-container th:nth-child(1) { width: 20%; } /* Time */
+.admin-container th:nth-child(2) { width: 20%; } /* User */
+.admin-container th:nth-child(3) { width: 20%; } /* IP */
+.admin-container th:nth-child(4) { width: 40%; } /* Message */
+
   }
 }
