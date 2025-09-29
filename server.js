@@ -60,6 +60,7 @@ let onlineUsers = new Set();
 let messages = [];
 let mutedUsers = {}; // username: timestamp until muted
 const admins = ["DEV"];
+let lastWhisperFrom = {}; // username -> last whisper sender
 
 io.use((socket, next) => {
   const { username } = socket.handshake.auth;
@@ -115,7 +116,57 @@ io.on("connection", (socket) => {
       }
     }
 
-    // Broadcast
+    // --- Whisper / Reply ---
+    if (msg.startsWith("/whisper ")) {
+      const parts = msg.split(" ");
+      const targetUser = parts[1];
+      const whisperMsg = parts.slice(2).join(" ");
+
+      let targetSocket;
+      for (let [id, s] of io.sockets.sockets) {
+        if (s.username === targetUser) {
+          targetSocket = s;
+          break;
+        }
+      }
+
+      if (targetSocket) {
+        targetSocket.emit("whisper", { from: username, message: whisperMsg });
+        socket.emit("whisper", { from: username, message: whisperMsg });
+        lastWhisperFrom[targetUser] = username;
+      } else {
+        socket.emit("system", `User "${targetUser}" not found`);
+      }
+      return;
+    }
+
+    if (msg.startsWith("/r ")) {
+      const replyMsg = msg.slice(3);
+      const replyTo = lastWhisperFrom[username];
+      if (!replyTo) {
+        socket.emit("system", "No one to reply to.");
+        return;
+      }
+
+      let targetSocket;
+      for (let [id, s] of io.sockets.sockets) {
+        if (s.username === replyTo) {
+          targetSocket = s;
+          break;
+        }
+      }
+
+      if (targetSocket) {
+        targetSocket.emit("whisper", { from: username, message: replyMsg });
+        socket.emit("whisper", { from: username, message: replyMsg });
+        lastWhisperFrom[replyTo] = username;
+      } else {
+        socket.emit("system", `User "${replyTo}" not found`);
+      }
+      return;
+    }
+
+    // Broadcast normal message
     const messageObj = { user: username, message: msg };
     messages.push(messageObj);
     io.emit("chat", messageObj);
