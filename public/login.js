@@ -19,3 +19,12 @@ form.addEventListener('submit', async e => {
     errorMsg.textContent = data.error || 'Login failed';
   }
 });
+
+if (data.success) {
+  // Save username in sessionStorage
+  sessionStorage.setItem("username", data.username);
+  window.location.href = "/chat.html"; // Go to chat page
+} else {
+  alert(data.message);
+}
+
