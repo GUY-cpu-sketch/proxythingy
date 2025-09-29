@@ -72,14 +72,14 @@ if (!sessionData || !sessionData.username) {
       }
     }
 
-    // --- Whispers & replies (anyone can use) ---
+    // --- Whispers & replies (anyone) ---
     if (message.startsWith("/whisper ") || message.startsWith("/r ")) {
       socket.emit("chat", message);
       chatInput.value = "";
       return;
     }
 
-    // --- Normal chat message ---
+    // --- Normal message ---
     socket.emit("chat", message);
     chatInput.value = "";
   });
