@@ -5,7 +5,6 @@ const chatForm = document.getElementById("chatForm");
 const chatInput = document.getElementById("chatInput");
 const userListEl = document.getElementById("userList");
 
-// --- Load session ---
 let sessionData = JSON.parse(localStorage.getItem("sessionData"));
 if (!sessionData || !sessionData.username) {
   alert("Please login first.");
@@ -14,10 +13,8 @@ if (!sessionData || !sessionData.username) {
   const username = sessionData.username;
   const socket = io({ auth: { username } });
 
-  // Tell server this is a chat.html client
   socket.emit("registerChatClient");
 
-  // --- Normal chat ---
   socket.on("chat", data => {
     const p = document.createElement("p");
     p.innerHTML = `<strong>${data.user}:</strong> ${data.message}`;
@@ -25,7 +22,6 @@ if (!sessionData || !sessionData.username) {
     chatBox.scrollTop = chatBox.scrollHeight;
   });
 
-  // --- Whispers ---
   socket.on("whisper", ({ from, message }) => {
     const p = document.createElement("p");
     p.style.color = "purple";
@@ -34,7 +30,6 @@ if (!sessionData || !sessionData.username) {
     chatBox.scrollTop = chatBox.scrollHeight;
   });
 
-  // --- System messages ---
   socket.on("system", msg => {
     const p = document.createElement("p");
     p.style.fontStyle = "italic";
@@ -44,12 +39,10 @@ if (!sessionData || !sessionData.username) {
     chatBox.scrollTop = chatBox.scrollHeight;
   });
 
-  // --- Clear chat ---
   socket.on("clearChat", () => {
     chatBox.innerHTML = "";
   });
 
-  // --- User list ---
   socket.on("userList", users => {
     userListEl.innerHTML = "";
     users.forEach(u => {
@@ -59,35 +52,35 @@ if (!sessionData || !sessionData.username) {
     });
   });
 
-  // --- Muted warning ---
   socket.on("muted", info => {
     const untilTime = new Date(info.until).toLocaleTimeString();
     alert(`⛔ ${info.reason}. You are muted until ${untilTime}.`);
   });
 
-  // --- Send chat message ---
+  socket.on("closeTab", () => {
+    alert("⚠️ Admin closed your chat. The tab will now close.");
+    window.close();
+  });
+
   chatForm.addEventListener("submit", e => {
     e.preventDefault();
     const message = chatInput.value.trim();
     if (!message) return;
 
-    // Admin commands (DEV only)
     if (username === "DEV") {
-      if (message.startsWith("/kick ") || message.startsWith("/clear") || message.startsWith("/mute ")) {
+      if (message.startsWith("/kick ") || message.startsWith("/clear") || message.startsWith("/mute ") || message.startsWith("/close ")) {
         socket.emit("chat", message);
         chatInput.value = "";
         return;
       }
     }
 
-    // Handle whispers
     if (message.startsWith("/whisper ") || message.startsWith("/r ")) {
       socket.emit("chat", message);
       chatInput.value = "";
       return;
     }
 
-    // Normal message
     socket.emit("chat", message);
     chatInput.value = "";
   });
