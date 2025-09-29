@@ -1,8 +1,6 @@
 import express from "express";
 import http from "http";
 import { Server } from "socket.io";
-import sqlite3 from "sqlite3";
-import { open } from "sqlite";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -13,179 +11,92 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-app.use(express.json());
+let users = {}; // socket.id -> { username, ip }
+let messages = [];
+
 app.use(express.static(path.join(__dirname, "public")));
 
-let db;
+io.on("connection", socket => {
+  const username = socket.handshake.auth.username || "Anonymous";
+  const ip =
+    socket.handshake.headers["x-forwarded-for"]?.split(",")[0].trim() ||
+    socket.handshake.address;
 
-// --- Initialize SQLite ---
-(async () => {
-  db = await open({ filename: "database.sqlite", driver: sqlite3.Database });
-  await db.run(`CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT UNIQUE,
-    password TEXT
-  )`);
-})();
+  users[socket.id] = { username, ip };
 
-// --- Routes ---
-app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public/index.html")));
-app.get("/login.html", (req, res) => res.sendFile(path.join(__dirname, "public/login.html")));
-app.get("/register.html", (req, res) => res.sendFile(path.join(__dirname, "public/register.html")));
-app.get("/chat.html", (req, res) => res.sendFile(path.join(__dirname, "public/chat.html")));
-app.get("/admin.html", (req, res) => res.sendFile(path.join(__dirname, "public/admin.html")));
+  console.log(`${username} connected from ${ip}`);
 
-// --- Auth endpoints ---
-app.post("/login", async (req, res) => {
-  const { username, password } = req.body;
-  if (!username || !password) return res.json({ success: false, message: "Fill in all fields" });
-
-  const user = await db.get("SELECT * FROM users WHERE username=? AND password=?", username, password);
-  if (!user) return res.json({ success: false, message: "Invalid credentials" });
-  res.json({ success: true, username });
-});
-
-app.post("/register", async (req, res) => {
-  const { username, password } = req.body;
-  if (!username || !password) return res.json({ success: false, message: "Fill in all fields" });
-
-  try {
-    await db.run("INSERT INTO users (username, password) VALUES (?, ?)", username, password);
-    res.json({ success: true });
-  } catch (e) {
-    res.json({ success: false, message: "Username already exists" });
-  }
-});
-
-// --- Admin endpoint for logs ---
-let messages = [];
-app.get("/admin/messages", (req, res) => {
-  const { user } = req.query;
-  if (user !== "DEV") return res.status(403).json({ error: "Forbidden" });
-  res.json(messages);
-});
-
-// --- Socket.IO ---
-let onlineUsers = new Set();
-let mutedUsers = {}; // username: timestamp
-let lastWhisper = {}; // track last whisper sender per user
-const admins = ["DEV"];
-
-io.use((socket, next) => {
-  const { username } = socket.handshake.auth;
-  if (!username) return next(new Error("Invalid username"));
-  socket.username = username;
-  next();
-});
-
-io.on("connection", (socket) => {
-  const username = socket.username;
-  onlineUsers.add(username);
-
+  // Notify others
   io.emit("system", `${username} joined the chat`);
-  io.emit("userList", Array.from(onlineUsers));
+  io.emit("userList", Object.values(users).map(u => u.username));
 
   // Send chat history
-  messages.forEach(msg => socket.emit("chat", msg));
+  messages.forEach(m => socket.emit("chat", m));
 
-  // --- Handle chat ---
-  socket.on("chat", (msg) => {
-    // Check mute
-    if (mutedUsers[username] && Date.now() < mutedUsers[username]) {
-      socket.emit("muted", {
-        until: mutedUsers[username],
-        reason: "You have been muted by an admin"
-      });
-      return;
-    }
+  // Handle chat messages
+  socket.on("chat", msg => {
+    if (!msg) return;
 
     // --- Admin commands ---
-    if (admins.includes(username) && msg.startsWith("/")) {
-      const parts = msg.split(" ");
-      const command = parts[0].toLowerCase();
+    if (username === "DEV") {
+      if (msg.startsWith("/kick ")) {
+        const target = msg.split(" ")[1];
+        const targetSocket = Object.entries(users).find(
+          ([, u]) => u.username === target
+        );
+        if (targetSocket) {
+          io.to(targetSocket[0]).emit("system", "You were kicked by DEV.");
+          io.sockets.sockets.get(targetSocket[0])?.disconnect(true);
+          io.emit("system", `${target} was kicked by DEV`);
+        }
+        return;
+      }
 
-      switch (command) {
-        case "/kick": {
-          const target = parts[1];
-          for (let [id, s] of io.sockets.sockets) {
-            if (s.username === target) s.disconnect(true);
-          }
-          io.emit("system", `${target} was kicked by admin`);
-          return;
-        }
-        case "/clear": {
-          messages = [];
-          io.emit("system", "Chat was cleared by admin");
-          return;
-        }
-        case "/mute": {
-          const userToMute = parts[1];
-          const duration = parseInt(parts[2]) || 60;
-          mutedUsers[userToMute] = Date.now() + duration * 1000;
-          io.emit("system", `${userToMute} was muted for ${duration} seconds`);
-          return;
-        }
+      if (msg.startsWith("/mute ")) {
+        // not fully implemented, placeholder
+        io.emit("system", `${username} muted someone`);
+        return;
+      }
+
+      if (msg.startsWith("/clear")) {
+        messages = [];
+        io.emit("clearChat"); // 🔑 tell clients to clear UI
+        io.emit("system", `${username} cleared the chat`);
+        return;
       }
     }
 
-    // --- Whisper command (anyone) ---
+    // --- Whisper ---
     if (msg.startsWith("/whisper ")) {
       const parts = msg.split(" ");
       const target = parts[1];
       const whisperMsg = parts.slice(2).join(" ");
-
-      let found = false;
-      for (let [id, s] of io.sockets.sockets) {
-        if (s.username === target) {
-          s.emit("whisper", { from: username, message: whisperMsg });
-          socket.emit("whisper", { from: username, message: whisperMsg });
-          lastWhisper[target] = username;
-          found = true;
-        }
-      }
-      if (!found) {
-        socket.emit("system", `User ${target} not found for whisper.`);
+      const targetSocket = Object.entries(users).find(
+        ([, u]) => u.username === target
+      );
+      if (targetSocket) {
+        io.to(targetSocket[0]).emit("whisper", {
+          from: username,
+          message: whisperMsg
+        });
+        socket.emit("whisper", { from: username, message: whisperMsg });
       }
       return;
     }
 
-    // --- Reply command (anyone) ---
-    if (msg.startsWith("/r ")) {
-      const replyMsg = msg.slice(3).trim();
-      const target = lastWhisper[username];
-      if (target) {
-        let found = false;
-        for (let [id, s] of io.sockets.sockets) {
-          if (s.username === target) {
-            s.emit("whisper", { from: username, message: replyMsg });
-            socket.emit("whisper", { from: username, message: replyMsg });
-            found = true;
-          }
-        }
-        if (!found) {
-          socket.emit("system", `User ${target} is no longer online.`);
-        }
-      } else {
-        socket.emit("system", "No one to reply to.");
-      }
-      return;
-    }
-
-    // --- Normal message ---
-    const ip = socket.handshake.headers["x-forwarded-for"]?.split(",")[0] || socket.handshake.address;
-    const messageObj = { user: username, message: msg, timestamp: Date.now(), ip };
-    messages.push(messageObj);
-    io.emit("chat", messageObj);
+    // --- Normal chat ---
+    const data = { user: username, message: msg };
+    messages.push(data);
+    io.emit("chat", data);
   });
 
-  // --- Disconnect ---
+  // Disconnect
   socket.on("disconnect", () => {
-    onlineUsers.delete(username);
+    delete users[socket.id];
     io.emit("system", `${username} left the chat`);
-    io.emit("userList", Array.from(onlineUsers));
+    io.emit("userList", Object.values(users).map(u => u.username));
   });
 });
 
-// --- Start server ---
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`StartMyEducation server running on port ${PORT}`));
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
