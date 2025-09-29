@@ -86,8 +86,10 @@ io.on("connection", (socket) => {
   io.emit("system", `${username} joined the chat`);
   io.emit("userList", Array.from(onlineUsers));
 
-  // Send chat history
-  messages.forEach(msg => socket.emit("chat", msg));
+  // Send chat history only to chat.html clients (admin.html fetches via REST)
+  socket.on("registerChatClient", () => {
+    messages.forEach(msg => socket.emit("chat", msg));
+  });
 
   // --- Handle chat ---
   socket.on("chat", (msg) => {
@@ -110,12 +112,12 @@ io.on("connection", (socket) => {
           for (let [id, s] of io.sockets.sockets) {
             if (s.username === target) s.disconnect(true);
           }
-          io.emit("system", `${username} kicked ${parts[1]}`);
+          io.emit("system", `${username} kicked ${target}`);
           return;
         }
         case "/clear": {
           messages = [];
-          io.emit("clearChat");
+          io.emit("clearChat"); // Only chat.html clients should emit registerChatClient
           io.emit("system", `${username} cleared the chat`);
           return;
         }
