@@ -41,6 +41,11 @@ if (!sessionData || !sessionData.username) {
     chatBox.scrollTop = chatBox.scrollHeight;
   });
 
+  // --- Clear chat ---
+  socket.on("clearChat", () => {
+    chatBox.innerHTML = "";
+  });
+
   // --- User list ---
   socket.on("userList", users => {
     userListEl.innerHTML = "";
@@ -63,23 +68,23 @@ if (!sessionData || !sessionData.username) {
     const message = chatInput.value.trim();
     if (!message) return;
 
-    // --- Admin commands ---
+    // Admin commands (DEV only)
     if (username === "DEV") {
       if (message.startsWith("/kick ") || message.startsWith("/clear") || message.startsWith("/mute ")) {
-        socket.emit("chat", message); // Send to server
+        socket.emit("chat", message);
         chatInput.value = "";
         return;
       }
     }
 
-    // --- Whispers & replies (anyone) ---
+    // Handle whispers
     if (message.startsWith("/whisper ") || message.startsWith("/r ")) {
       socket.emit("chat", message);
       chatInput.value = "";
       return;
     }
 
-    // --- Normal message ---
+    // Normal message
     socket.emit("chat", message);
     chatInput.value = "";
   });
