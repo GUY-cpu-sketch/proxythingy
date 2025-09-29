@@ -102,6 +102,27 @@ io.on("connection", (socket) => {
   });
 });
 
+socket.on("chat", (msg) => {
+  // Check mute status
+  if (mutedUsers[username] && Date.now() < mutedUsers[username]) {
+    socket.emit("muted", {
+      until: mutedUsers[username],
+      reason: "You have been muted by an admin"
+    });
+    return;
+  }
+
+  // Admin command check
+  if (admins.includes(username) && msg.startsWith("/")) {
+    handleAdminCommand(socket, msg);
+    return;
+  }
+
+  // Broadcast message
+  io.emit("chat", { user: username, message: msg });
+});
+
+
 // --- Start server ---
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`StartMyEducation server running on port ${PORT}`));
