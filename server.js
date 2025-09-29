@@ -18,6 +18,7 @@ app.use(express.static(path.join(__dirname, "public")));
 
 let db;
 
+// --- Initialize SQLite ---
 (async () => {
   db = await open({ filename: "database.sqlite", driver: sqlite3.Database });
   await db.run(`CREATE TABLE IF NOT EXISTS users (
@@ -25,24 +26,21 @@ let db;
     username TEXT UNIQUE,
     password TEXT
   )`);
-  await db.run(`CREATE TABLE IF NOT EXISTS messages (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT,
-    message TEXT,
-    ip TEXT,
-    timestamp INTEGER
-  )`);
 })();
 
 // --- Routes ---
 app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public/index.html")));
+app.get("/login.html", (req, res) => res.sendFile(path.join(__dirname, "public/login.html")));
+app.get("/register.html", (req, res) => res.sendFile(path.join(__dirname, "public/register.html")));
+app.get("/chat.html", (req, res) => res.sendFile(path.join(__dirname, "public/chat.html")));
 
 app.post("/login", async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) return res.json({ success: false, message: "Fill in all fields" });
+
   const user = await db.get("SELECT * FROM users WHERE username=? AND password=?", username, password);
   if (!user) return res.json({ success: false, message: "Invalid credentials" });
-  res.json({ success: true });
+  res.json({ success: true, username });
 });
 
 app.post("/register", async (req, res) => {
@@ -57,21 +55,11 @@ app.post("/register", async (req, res) => {
   }
 });
 
-// --- Admin messages page ---
-app.get("/admin.html", (req, res) => res.sendFile(path.join(__dirname, "public/admin.html")));
-app.get("/admin/messages", async (req, res) => {
-  // only allow DEV
-  const user = req.query.user;
-  if (user !== "DEV") return res.status(403).json({ error: "Forbidden" });
-
-  const msgs = await db.all("SELECT * FROM messages ORDER BY timestamp DESC");
-  res.json(msgs);
-});
-
 // --- Socket.IO ---
 let onlineUsers = new Set();
-let mutedUsers = {}; // {username: untilTimestamp}
-let admins = ["DEV"];
+let messages = [];
+let mutedUsers = {}; // username: timestamp until muted
+const admins = ["DEV"];
 
 io.use((socket, next) => {
   const { username } = socket.handshake.auth;
@@ -84,65 +72,56 @@ io.on("connection", (socket) => {
   const username = socket.username;
   onlineUsers.add(username);
 
+  // Welcome message
   io.emit("system", `${username} joined the chat`);
   io.emit("userList", Array.from(onlineUsers));
+  messages.forEach(msg => socket.emit("chat", msg));
 
-  // Send previous messages
-  (async () => {
-    const msgs = await db.all("SELECT username, message FROM messages ORDER BY timestamp ASC");
-    msgs.forEach(m => socket.emit("chat", { user: m.username, message: m.message }));
-  })();
-
-  // --- Chat ---
-  socket.on("chat", async msg => {
+  // --- Handle chat ---
+  socket.on("chat", (msg) => {
     // Check mute
     if (mutedUsers[username] && Date.now() < mutedUsers[username]) {
       socket.emit("muted", {
         until: mutedUsers[username],
-        reason: "You are muted"
+        reason: "You have been muted by an admin"
       });
       return;
     }
 
-    // Admin command
+    // Admin commands
     if (admins.includes(username) && msg.startsWith("/")) {
       const parts = msg.split(" ");
-      if (parts[0] === "/kick" && parts[1]) {
-        const target = parts[1];
-        for (let [id, s] of io.sockets.sockets) {
-          if (s.username === target) s.disconnect(true);
-        }
-        io.emit("system", `${target} was kicked by admin`);
-        return;
-      }
-      if (parts[0] === "/clear") {
-        await db.run("DELETE FROM messages");
-        io.emit("system", "Chat cleared by admin");
-        io.emit("chat", []);
-        return;
-      }
-      if (parts[0] === "/mute" && parts[1] && parts[2]) {
-        const target = parts[1];
-        const timeMs = parseInt(parts[2], 10) * 1000; // seconds
-        mutedUsers[target] = Date.now() + timeMs;
-        io.emit("system", `${target} was muted by admin for ${parts[2]}s`);
-        return;
+      const command = parts[0].toLowerCase();
+
+      switch (command) {
+        case "/kick":
+          const target = parts[1];
+          for (let [id, s] of io.sockets.sockets) {
+            if (s.username === target) s.disconnect(true);
+          }
+          io.emit("system", `${target} was kicked by admin`);
+          return;
+        case "/clear":
+          messages = [];
+          io.emit("system", "Chat was cleared by admin");
+          io.emit("chat", ...messages);
+          return;
+        case "/mute":
+          const userToMute = parts[1];
+          const duration = parseInt(parts[2]) || 60; // default 60 seconds
+          mutedUsers[userToMute] = Date.now() + duration * 1000;
+          io.emit("system", `${userToMute} was muted for ${duration} seconds`);
+          return;
       }
     }
 
-    // Save message with IP
-    const ip = socket.handshake.address;
-    await db.run(
-      "INSERT INTO messages (username, message, ip, timestamp) VALUES (?, ?, ?, ?)",
-      username,
-      msg,
-      ip,
-      Date.now()
-    );
-
-    io.emit("chat", { user: username, message: msg });
+    // Broadcast
+    const messageObj = { user: username, message: msg };
+    messages.push(messageObj);
+    io.emit("chat", messageObj);
   });
 
+  // --- Handle disconnect ---
   socket.on("disconnect", () => {
     onlineUsers.delete(username);
     io.emit("system", `${username} left the chat`);
