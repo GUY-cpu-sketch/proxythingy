@@ -5,11 +5,32 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Panel</title>
   <link rel="stylesheet" href="/style.css">
+  <style>
+    .admin-container {
+      max-width: 1200px;
+      margin: 20px auto;
+      padding: 10px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+    th, td {
+      padding: 10px;
+      border: 1px solid #ccc;
+      text-align: left;
+      word-wrap: break-word;
+    }
+    th:nth-child(1) { width: 20%; } /* Time */
+    th:nth-child(2) { width: 20%; } /* User */
+    th:nth-child(3) { width: 20%; } /* IP */
+    th:nth-child(4) { width: 40%; } /* Message */
+  </style>
 </head>
 <body>
   <div class="container admin-container">
     <h1>Admin Panel</h1>
-    <button id="refresh">Refresh Messages</button>
     <table id="messagesTable">
       <thead>
         <tr>
@@ -24,29 +45,49 @@
   </div>
 
   <script type="module">
+    import { io } from "https://cdn.socket.io/4.7.2/socket.io.esm.min.js";
+
     const tableBody = document.querySelector("#messagesTable tbody");
-    const refreshBtn = document.getElementById("refresh");
-    const user = prompt("Enter admin username:"); // only DEV can view
-
-    async function loadMessages() {
-      tableBody.innerHTML = "";
-      const res = await fetch(`/admin/messages?user=${user}`);
-      const data = await res.json();
-
-      data.forEach(m => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${new Date(m.timestamp).toLocaleString()}</td>
-          <td>${m.user}</td>   <!-- fixed from m.username -->
-          <td>${m.ip}</td>
-          <td>${m.message}</td>
-        `;
-        tableBody.appendChild(tr);
-      });
+    const adminUser = prompt("Enter admin username:"); // must be DEV
+    if (!adminUser) {
+      alert("Admin username required");
+      throw new Error("Admin username required");
     }
 
-    refreshBtn.addEventListener("click", loadMessages);
-    loadMessages();
+    const socket = io({ auth: { username: adminUser } });
+
+    // Function to add a row
+    function addMessageRow(m) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${new Date(m.timestamp).toLocaleString()}</td>
+        <td>${m.user}</td>
+        <td>${m.ip}</td>
+        <td>${m.message}</td>
+      `;
+      tableBody.appendChild(tr);
+      tableBody.scrollTop = tableBody.scrollHeight;
+    }
+
+    // --- Load initial messages ---
+    fetch(`/admin/messages?user=${adminUser}`)
+      .then(res => res.json())
+      .then(data => data.forEach(addMessageRow));
+
+    // --- Real-time updates ---
+    socket.on("chat", m => {
+      addMessageRow(m);
+    });
+
+    socket.on("whisper", ({ from, message }) => {
+      addMessageRow({ user: `(Whisper) ${from}`, message, ip: "-", timestamp: Date.now() });
+    });
+
+    socket.on("system", msg => {
+      addMessageRow({ user: "SYSTEM", message: msg, ip: "-", timestamp: Date.now() });
+    });
+
+    // Note: admin.html ignores /clear events so messages are never wiped
   </script>
 </body>
 </html>
