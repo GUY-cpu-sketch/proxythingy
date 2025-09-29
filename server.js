@@ -42,7 +42,6 @@ app.get("/admin/messages", (req, res) => {
     return res.status(403).json({ error: "Forbidden" });
   }
 
-  // Return messages including whispers
   const allMessages = messages.map(msg => ({
     timestamp: msg.timestamp || Date.now(),
     username: msg.user,
@@ -93,46 +92,54 @@ io.on("connection", (socket) => {
   const username = socket.username;
   onlineUsers.add(username);
 
-  // Send welcome message
+  // Welcome
   io.emit("system", `${username} joined the chat`);
   io.emit("userList", Array.from(onlineUsers));
   messages.forEach(msg => socket.emit("chat", msg));
 
   // --- Handle chat ---
   socket.on("chat", (msg) => {
-    // Mute check
+    // Check mute
     if (mutedUsers[username] && Date.now() < mutedUsers[username]) {
       socket.emit("muted", { until: mutedUsers[username], reason: "You have been muted by an admin" });
       return;
     }
 
     // Admin commands
-    if (admins.includes(username) && msg.startsWith("/")) {
+    if (msg.startsWith("/")) {
       const parts = msg.split(" ");
       const command = parts[0].toLowerCase();
-      switch (command) {
-        case "/kick":
-          const target = parts[1];
-          for (let [id, s] of io.sockets.sockets) {
-            if (s.username === target) s.disconnect(true);
-          }
-          io.emit("system", `${target} was kicked by admin`);
-          return;
-        case "/clear":
-          messages = [];
-          io.emit("system", "Chat was cleared by admin");
-          io.emit("chat", ...messages);
-          return;
-        case "/mute":
-          const userToMute = parts[1];
-          const duration = parseInt(parts[2]) || 60;
-          mutedUsers[userToMute] = Date.now() + duration * 1000;
-          io.emit("system", `${userToMute} was muted for ${duration} seconds`);
-          return;
+
+      if (admins.includes(username)) {
+        switch (command) {
+          case "/kick":
+            const target = parts[1];
+            for (let [id, s] of io.sockets.sockets) {
+              if (s.username === target) s.disconnect(true);
+            }
+            io.emit("system", `${target} was kicked by admin`);
+            return;
+
+          case "/clear":
+            messages = [];
+            io.emit("system", "Chat was cleared by admin");
+            io.emit("chat", ...messages);
+            return;
+
+          case "/mute":
+            const userToMute = parts[1];
+            const duration = parseInt(parts[2]) || 60;
+            mutedUsers[userToMute] = Date.now() + duration * 1000;
+            io.emit("system", `${userToMute} was muted for ${duration} seconds`);
+            return;
+        }
+      } else {
+        socket.emit("system", "You are not allowed to use this command.");
+        return;
       }
     }
 
-    // --- Whisper ---
+    // --- Whisper (any user can use) ---
     if (msg.startsWith("/whisper ")) {
       const parts = msg.split(" ");
       const targetUser = parts[1];
@@ -140,18 +147,10 @@ io.on("connection", (socket) => {
 
       let targetSocket;
       for (let [id, s] of io.sockets.sockets) {
-        if (s.username === targetUser) {
-          targetSocket = s;
-          break;
-        }
+        if (s.username === targetUser) targetSocket = s;
       }
 
-      const messageObj = {
-        user: username,
-        message: `(Whisper to ${targetUser}) ${whisperMsg}`,
-        timestamp: Date.now(),
-        ip: socket.handshake.address
-      };
+      const messageObj = { user: username, message: `(Whisper to ${targetUser}) ${whisperMsg}`, timestamp: Date.now(), ip: socket.handshake.address };
       messages.push(messageObj);
 
       if (targetSocket) {
@@ -175,18 +174,10 @@ io.on("connection", (socket) => {
 
       let targetSocket;
       for (let [id, s] of io.sockets.sockets) {
-        if (s.username === replyTo) {
-          targetSocket = s;
-          break;
-        }
+        if (s.username === replyTo) targetSocket = s;
       }
 
-      const messageObj = {
-        user: username,
-        message: `(Whisper reply to ${replyTo}) ${replyMsg}`,
-        timestamp: Date.now(),
-        ip: socket.handshake.address
-      };
+      const messageObj = { user: username, message: `(Whisper reply to ${replyTo}) ${replyMsg}`, timestamp: Date.now(), ip: socket.handshake.address };
       messages.push(messageObj);
 
       if (targetSocket) {
