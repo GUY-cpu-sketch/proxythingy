@@ -6,13 +6,12 @@ const chatInput = document.getElementById("chatInput");
 const userListEl = document.getElementById("userList");
 
 if (!window.sessionData || !window.sessionData.username) {
-  console.error("No username found. Please login first.");
+  alert("Please login first.");
+  window.location.href = "/";
 } else {
-
-  const socket = io({ auth: { username: window.sessionData.username } });
   const username = window.sessionData.username;
+  const socket = io({ auth: { username } });
 
-  // --- Chat messages ---
   socket.on("chat", data => {
     const p = document.createElement("p");
     p.innerHTML = `<strong>${data.user}:</strong> ${data.message}`;
@@ -20,7 +19,6 @@ if (!window.sessionData || !window.sessionData.username) {
     chatBox.scrollTop = chatBox.scrollHeight;
   });
 
-  // --- System messages ---
   socket.on("system", msg => {
     const p = document.createElement("p");
     p.style.fontStyle = "italic";
@@ -30,7 +28,6 @@ if (!window.sessionData || !window.sessionData.username) {
     chatBox.scrollTop = chatBox.scrollHeight;
   });
 
-  // --- User list ---
   socket.on("userList", users => {
     userListEl.innerHTML = "";
     users.forEach(u => {
@@ -40,45 +37,24 @@ if (!window.sessionData || !window.sessionData.username) {
     });
   });
 
-  // --- Muted warning ---
   socket.on("muted", info => {
     const untilTime = new Date(info.until).toLocaleTimeString();
     alert(`⛔ ${info.reason}. You are muted until ${untilTime}.`);
   });
 
-  // --- Send chat messages ---
   chatForm.addEventListener("submit", e => {
     e.preventDefault();
-    const message = chatInput.value.trim();
-    if (!message) return;
+    const msg = chatInput.value.trim();
+    if (!msg) return;
 
-    // --- Admin commands (DEV only) ---
-    if (username === "DEV") {
-      if (message.startsWith("/kick ")) {
-        const target = message.split(" ")[1];
-        socket.emit("adminKick", target);
-        chatInput.value = "";
-        return;
-      }
-      if (message === "/clear") {
-        socket.emit("adminClear");
-        chatInput.value = "";
-        return;
-      }
-      if (message.startsWith("/mute ")) {
-        const parts = message.split(" ");
-        const target = parts[1];
-        const minutes = parseInt(parts[2], 10);
-        if (target && !isNaN(minutes)) {
-          socket.emit("adminMute", { target, minutes });
-        }
-        chatInput.value = "";
-        return;
-      }
+    // Admin commands (DEV only)
+    if (username === "DEV" && msg.startsWith("/")) {
+      socket.emit("chat", msg);
+      chatInput.value = "";
+      return;
     }
 
-    // --- Normal message ---
-    socket.emit("chat", message);
+    socket.emit("chat", msg);
     chatInput.value = "";
   });
 }
