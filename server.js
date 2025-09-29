@@ -132,21 +132,30 @@ io.on("connection", (socket) => {
     }
 
     // --- Whisper ---
-    if (msg.startsWith("/whisper ")) {
-      const parts = msg.split(" ");
-      const target = parts[1];
-      const message = parts.slice(2).join(" ");
-      const targetSocket = Array.from(io.sockets.sockets.values()).find(s => s.username === target);
+if (msg.startsWith("/whisper ")) {
+  const parts = msg.split(" ");
+  const target = parts[1];
+  const messageText = parts.slice(2).join(" ");
+  const targetSocket = Array.from(io.sockets.sockets.values()).find(s => s.username === target);
 
-      if (targetSocket) {
-        targetSocket.emit("whisper", { from: username, message });
-        socket.emit("whisper", { from: username, message });
-        lastWhisperFrom[target] = username;
-      } else {
-        socket.emit("system", `User "${target}" not found`);
-      }
-      return;
-    }
+  if (targetSocket) {
+    const messageObj = {
+      user: `(Whisper) ${username} → ${target}`,
+      message: messageText,
+      timestamp: Date.now(),
+      ip
+    };
+    messages.push(messageObj);
+    // Send only to sender and target
+    socket.emit("whisper", { from: username, message: messageText });
+    targetSocket.emit("whisper", { from: username, message: messageText });
+    io.emit("chat", messageObj); // send to admin panel and any monitoring clients
+    lastWhisperFrom[target] = username;
+  } else {
+    socket.emit("system", `User "${target}" not found`);
+  }
+  return;
+}
 
     // --- Reply ---
     if (msg.startsWith("/r ")) {
