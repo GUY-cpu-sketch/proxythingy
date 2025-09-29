@@ -1,30 +1,25 @@
-const form = document.getElementById('loginForm');
-const errorMsg = document.getElementById('errorMsg');
+// login.js
+const loginForm = document.getElementById("loginForm");
+const usernameInput = document.getElementById("username");
+const passwordInput = document.getElementById("password");
 
-form.addEventListener('submit', async e => {
+loginForm.addEventListener("submit", async (e) => {
   e.preventDefault();
-  const username = document.getElementById('username').value.trim();
-  const password = document.getElementById('password').value.trim();
+  const username = usernameInput.value.trim();
+  const password = passwordInput.value.trim();
+  if (!username || !password) return;
 
-  const res = await fetch('/login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+  const res = await fetch("/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, password })
   });
-
   const data = await res.json();
+
   if (data.success) {
-    window.location.href = '/chat';
+    sessionStorage.setItem("username", data.username);
+    window.location.href = "/chat.html";
   } else {
-    errorMsg.textContent = data.error || 'Login failed';
+    alert(data.message);
   }
 });
-
-if (data.success) {
-  // Save username in sessionStorage
-  sessionStorage.setItem("username", data.username);
-  window.location.href = "/chat.html"; // Go to chat page
-} else {
-  alert(data.message);
-}
-
