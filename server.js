@@ -52,10 +52,12 @@ app.post("/register", async (req, res) => {
   }
 });
 
-// --- Socket.IO ---
+// --- Chat state ---
 let onlineUsers = new Set();
 let messages = [];
+let mutedUsers = {}; // { username: timestamp }
 
+// --- Socket.IO ---
 io.use((socket, next) => {
   const { username } = socket.handshake.auth;
   if (!username) return next(new Error("Invalid username"));
@@ -70,17 +72,28 @@ io.on("connection", (socket) => {
   io.emit("system", `${username} joined the chat`);
   io.emit("userList", Array.from(onlineUsers));
 
+  // Send chat history
   messages.forEach(msg => socket.emit("chat", msg));
 
   // --- Handle chat ---
-  socket.on("chat", msg => {
+  socket.on("chat", (msg) => {
+    // Check mute
+    if (mutedUsers[username] && Date.now() < mutedUsers[username]) {
+      socket.emit("muted", {
+        until: mutedUsers[username],
+        reason: "You have been muted by an admin"
+      });
+      return;
+    }
+
+    // Normal message
     const message = { user: username, message: msg };
     messages.push(message);
     io.emit("chat", message);
   });
 
   // --- Admin commands ---
-  socket.on("adminKick", target => {
+  socket.on("adminKick", (target) => {
     if (username !== "DEV") return;
     for (let [id, s] of io.sockets.sockets) {
       if (s.username === target) s.disconnect(true);
@@ -92,36 +105,22 @@ io.on("connection", (socket) => {
     if (username !== "DEV") return;
     messages = [];
     io.emit("system", "Chat was cleared by admin");
-    io.emit("chat", ...messages);
   });
 
+  socket.on("adminMute", ({ target, minutes }) => {
+    if (username !== "DEV") return;
+    const until = Date.now() + minutes * 60 * 1000;
+    mutedUsers[target] = until;
+    io.emit("system", `${target} was muted by admin for ${minutes} minute(s)`);
+  });
+
+  // --- Disconnect ---
   socket.on("disconnect", () => {
     onlineUsers.delete(username);
     io.emit("system", `${username} left the chat`);
     io.emit("userList", Array.from(onlineUsers));
   });
 });
-
-socket.on("chat", (msg) => {
-  // Check mute status
-  if (mutedUsers[username] && Date.now() < mutedUsers[username]) {
-    socket.emit("muted", {
-      until: mutedUsers[username],
-      reason: "You have been muted by an admin"
-    });
-    return;
-  }
-
-  // Admin command check
-  if (admins.includes(username) && msg.startsWith("/")) {
-    handleAdminCommand(socket, msg);
-    return;
-  }
-
-  // Broadcast message
-  io.emit("chat", { user: username, message: msg });
-});
-
 
 // --- Start server ---
 const PORT = process.env.PORT || 3000;
