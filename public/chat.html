@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StartMyEducation - Chat</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="container chat-container">
+  <h1>Chat Room</h1>
+
+  <div class="chat-main">
+    <!-- Chat messages -->
+    <div id="chatBox" class="chat-box"></div>
+
+    <!-- Sidebar with online users -->
+    <div class="chat-sidebar">
+      <h3>Online Users</h3>
+      <ul id="userList"></ul>
+    </div>
+  </div>
+
+  <!-- Chat input form -->
+  <form id="chatForm" class="chat-form">
+    <input type="text" id="chatInput" placeholder="Type your message..." autocomplete="off" required>
+    <button type="submit">Send</button>
+  </form>
+
+  <p><a href="/">Logout</a></p>
+</div>
+
+<script type="module" src="/chat/chat.js"></script>
+</body>
+</html>
