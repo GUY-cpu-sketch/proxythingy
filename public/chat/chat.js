@@ -65,3 +65,40 @@ if (!window.sessionData || !window.sessionData.username) {
     chatInput.value = "";
   });
 }
+const socket = io({ auth: { session: window.sessionData } });
+
+const chatForm = document.getElementById("chatForm");
+const chatInput = document.getElementById("chatInput");
+const chatBox = document.getElementById("chatBox");
+
+// Receive chat messages
+socket.on("chat", (data) => {
+  const p = document.createElement("p");
+  p.textContent = `${data.user}: ${data.message}`;
+  chatBox.appendChild(p);
+});
+
+// System messages
+socket.on("system", (msg) => {
+  const p = document.createElement("p");
+  p.classList.add("system-message");
+  p.textContent = msg;
+  chatBox.appendChild(p);
+});
+
+// Muted warning
+socket.on("muted", (info) => {
+  const untilTime = new Date(info.until).toLocaleTimeString();
+  alert(`⛔ ${info.reason}. You are muted until ${untilTime}.`);
+});
+
+// Send chat messages
+chatForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const message = chatInput.value.trim();
+  if (message !== "") {
+    socket.emit("chat", message);
+    chatInput.value = "";
+  }
+});
+
