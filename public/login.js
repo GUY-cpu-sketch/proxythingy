@@ -1,25 +1,36 @@
-// login.js
 const loginForm = document.getElementById("loginForm");
-const usernameInput = document.getElementById("username");
-const passwordInput = document.getElementById("password");
+const loginInput = document.getElementById("loginUsername");
+const passwordInput = document.getElementById("loginPassword");
 
 loginForm.addEventListener("submit", async (e) => {
   e.preventDefault();
-  const username = usernameInput.value.trim();
+
+  const username = loginInput.value.trim();
   const password = passwordInput.value.trim();
-  if (!username || !password) return;
 
-  const res = await fetch("/login", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, password })
-  });
-  const data = await res.json();
+  if (!username || !password) return alert("Fill in all fields");
 
-  if (data.success) {
-    sessionStorage.setItem("username", data.username);
-    window.location.href = "/chat.html";
-  } else {
-    alert(data.message);
+  try {
+    const res = await fetch("/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password })
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      // Save session data locally
+      const sessionData = { username };
+      window.sessionData = sessionData;
+      localStorage.setItem("sessionData", JSON.stringify(sessionData));
+
+      // Redirect to chat
+      window.location.href = "/chat.html";
+    } else {
+      alert(data.message);
+    }
+  } catch (err) {
+    console.error(err);
+    alert("Login failed. Try again.");
   }
 });
