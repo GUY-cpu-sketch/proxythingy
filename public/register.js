@@ -1,21 +1,25 @@
-const form = document.getElementById('registerForm');
-const errorMsg = document.getElementById('errorMsg');
+// register.js
+const registerForm = document.getElementById("registerForm");
+const usernameInput = document.getElementById("username");
+const passwordInput = document.getElementById("password");
 
-form.addEventListener('submit', async e => {
+registerForm.addEventListener("submit", async (e) => {
   e.preventDefault();
-  const username = document.getElementById('username').value.trim();
-  const password = document.getElementById('password').value.trim();
+  const username = usernameInput.value.trim();
+  const password = passwordInput.value.trim();
+  if (!username || !password) return;
 
-  const res = await fetch('/register', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+  const res = await fetch("/register", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, password })
   });
-
   const data = await res.json();
+
   if (data.success) {
-    window.location.href = '/chat';
+    alert("Registration successful! You can now login.");
+    window.location.href = "/login.html";
   } else {
-    errorMsg.textContent = data.error || 'Registration failed';
+    alert(data.message);
   }
 });
