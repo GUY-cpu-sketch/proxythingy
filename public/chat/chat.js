@@ -5,18 +5,16 @@ const chatForm = document.getElementById("chatForm");
 const chatInput = document.getElementById("chatInput");
 const userListEl = document.getElementById("userList");
 
-// --- Load session data ---
+// --- Load session ---
 let sessionData = JSON.parse(localStorage.getItem("sessionData"));
 if (!sessionData || !sessionData.username) {
   alert("Please login first.");
   window.location.href = "/login.html";
 } else {
-  window.sessionData = sessionData;
   const username = sessionData.username;
-
   const socket = io({ auth: { username } });
 
-  // --- Chat messages ---
+  // --- Normal chat ---
   socket.on("chat", data => {
     const p = document.createElement("p");
     p.innerHTML = `<strong>${data.user}:</strong> ${data.message}`;
@@ -68,40 +66,20 @@ if (!sessionData || !sessionData.username) {
     // Admin commands
     if (username === "DEV") {
       if (message.startsWith("/kick ")) {
-        const target = message.split(" ")[1];
-        socket.emit("adminKick", target);
+        socket.emit("chat", message);
         chatInput.value = "";
         return;
       }
-      if (message === "/clear") {
-        socket.emit("adminClear");
-        chatInput.value = "";
-        return;
-      }
-      if (message.startsWith("/mute ")) {
-        const parts = message.split(" ");
-        const target = parts[1];
-        const duration = parts[2] || "30";
-        socket.emit("adminMute", { target, duration });
+      if (message.startsWith("/clear") || message.startsWith("/mute ")) {
+        socket.emit("chat", message);
         chatInput.value = "";
         return;
       }
     }
 
-    // --- Handle /whisper and /r locally ---
-    if (message.startsWith("/whisper ")) {
-      // Format: /whisper username message
-      const parts = message.split(" ");
-      const target = parts[1];
-      const msgText = parts.slice(2).join(" ");
-      socket.emit("chat", message); // handled server-side
-      chatInput.value = "";
-      return;
-    }
-
-    if (message.startsWith("/r ")) {
-      const replyMsg = message.slice(3);
-      socket.emit("chat", message); // handled server-side
+    // Handle whispers and replies
+    if (message.startsWith("/whisper ") || message.startsWith("/r ")) {
+      socket.emit("chat", message);
       chatInput.value = "";
       return;
     }
