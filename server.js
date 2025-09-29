@@ -82,11 +82,11 @@ io.on("connection", (socket) => {
   const ip = socket.handshake.headers["x-forwarded-for"]?.split(",")[0] || socket.handshake.address;
   onlineUsers.add(username);
 
-  // Send system join message
+  // System join message
   io.emit("system", `${username} joined the chat`);
   io.emit("userList", Array.from(onlineUsers));
 
-  // Send chat history only to chat.html clients (admin.html fetches via REST)
+  // Mark client as chat.html for sending history
   socket.on("registerChatClient", () => {
     messages.forEach(msg => socket.emit("chat", msg));
   });
@@ -109,15 +109,14 @@ io.on("connection", (socket) => {
       switch (command) {
         case "/kick": {
           const target = parts[1];
-          for (let [id, s] of io.sockets.sockets) {
-            if (s.username === target) s.disconnect(true);
-          }
+          const targetSocket = Array.from(io.sockets.sockets.values()).find(s => s.username === target);
+          if (targetSocket) targetSocket.disconnect(true);
           io.emit("system", `${username} kicked ${target}`);
           return;
         }
         case "/clear": {
           messages = [];
-          io.emit("clearChat"); // Only chat.html clients should emit registerChatClient
+          io.emit("clearChat"); // Only chat.html listens
           io.emit("system", `${username} cleared the chat`);
           return;
         }
@@ -128,47 +127,63 @@ io.on("connection", (socket) => {
           io.emit("system", `${userToMute} was muted for ${duration} seconds`);
           return;
         }
+        case "/close": {
+          const target = parts[1];
+          if (!target) { socket.emit("system", "Usage: /close [username]"); return; }
+          const targetSocket = Array.from(io.sockets.sockets.values()).find(s => s.username === target);
+          if (targetSocket) {
+            targetSocket.emit("closeTab");
+            io.emit("system", `${username} closed ${target}'s chat`);
+          } else {
+            socket.emit("system", `User "${target}" not found`);
+          }
+          return;
+        }
       }
     }
 
     // --- Whisper ---
-if (msg.startsWith("/whisper ")) {
-  const parts = msg.split(" ");
-  const target = parts[1];
-  const messageText = parts.slice(2).join(" ");
-  const targetSocket = Array.from(io.sockets.sockets.values()).find(s => s.username === target);
+    if (msg.startsWith("/whisper ")) {
+      const parts = msg.split(" ");
+      const target = parts[1];
+      const messageText = parts.slice(2).join(" ");
+      const targetSocket = Array.from(io.sockets.sockets.values()).find(s => s.username === target);
 
-  if (targetSocket) {
-    const messageObj = {
-      user: `(Whisper) ${username} → ${target}`,
-      message: messageText,
-      timestamp: Date.now(),
-      ip
-    };
-    messages.push(messageObj);
-    // Send only to sender and target
-    socket.emit("whisper", { from: username, message: messageText });
-    targetSocket.emit("whisper", { from: username, message: messageText });
-    io.emit("chat", messageObj); // send to admin panel and any monitoring clients
-    lastWhisperFrom[target] = username;
-  } else {
-    socket.emit("system", `User "${target}" not found`);
-  }
-  return;
-}
+      if (targetSocket) {
+        const messageObj = {
+          user: `(Whisper) ${username} → ${target}`,
+          message: messageText,
+          timestamp: Date.now(),
+          ip
+        };
+        messages.push(messageObj);
+        socket.emit("whisper", { from: username, message: messageText });
+        targetSocket.emit("whisper", { from: username, message: messageText });
+        io.emit("chat", messageObj); // admin panel
+        lastWhisperFrom[target] = username;
+      } else {
+        socket.emit("system", `User "${target}" not found`);
+      }
+      return;
+    }
 
     // --- Reply ---
     if (msg.startsWith("/r ")) {
       const replyMsg = msg.slice(3).trim();
       const replyTo = lastWhisperFrom[username];
-      if (!replyTo) {
-        socket.emit("system", "No one to reply to.");
-        return;
-      }
+      if (!replyTo) { socket.emit("system", "No one to reply to."); return; }
       const targetSocket = Array.from(io.sockets.sockets.values()).find(s => s.username === replyTo);
       if (targetSocket) {
+        const messageObj = {
+          user: `(Whisper) ${username} → ${replyTo}`,
+          message: replyMsg,
+          timestamp: Date.now(),
+          ip
+        };
+        messages.push(messageObj);
         targetSocket.emit("whisper", { from: username, message: replyMsg });
         socket.emit("whisper", { from: username, message: replyMsg });
+        io.emit("chat", messageObj);
         lastWhisperFrom[replyTo] = username;
       } else {
         socket.emit("system", `User "${replyTo}" not found`);
