@@ -81,7 +81,7 @@ if (!sessionData || !sessionData.username) {
       if (message.startsWith("/mute ")) {
         const parts = message.split(" ");
         const target = parts[1];
-        const duration = parts[2] || "60";
+        const duration = parts[2] || "30";
         socket.emit("adminMute", { target, duration });
         chatInput.value = "";
         return;
