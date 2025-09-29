@@ -33,7 +33,27 @@ app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public/index.html"
 app.get("/login.html", (req, res) => res.sendFile(path.join(__dirname, "public/login.html")));
 app.get("/register.html", (req, res) => res.sendFile(path.join(__dirname, "public/register.html")));
 app.get("/chat.html", (req, res) => res.sendFile(path.join(__dirname, "public/chat.html")));
+app.get("/admin.html", (req, res) => res.sendFile(path.join(__dirname, "public/admin.html")));
 
+// --- Admin messages endpoint ---
+app.get("/admin/messages", (req, res) => {
+  const { user } = req.query;
+  if (!user || !["DEV"].includes(user)) {
+    return res.status(403).json({ error: "Forbidden" });
+  }
+
+  // Return messages including whispers
+  const allMessages = messages.map(msg => ({
+    timestamp: msg.timestamp || Date.now(),
+    username: msg.user,
+    ip: msg.ip || "Unknown",
+    message: msg.message
+  }));
+
+  res.json(allMessages);
+});
+
+// --- Auth endpoints ---
 app.post("/login", async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) return res.json({ success: false, message: "Fill in all fields" });
@@ -58,9 +78,9 @@ app.post("/register", async (req, res) => {
 // --- Socket.IO ---
 let onlineUsers = new Set();
 let messages = [];
-let mutedUsers = {}; // username: timestamp until muted
+let mutedUsers = {};
 const admins = ["DEV"];
-let lastWhisperFrom = {}; // username -> last whisper sender
+let lastWhisperFrom = {};
 
 io.use((socket, next) => {
   const { username } = socket.handshake.auth;
@@ -73,19 +93,16 @@ io.on("connection", (socket) => {
   const username = socket.username;
   onlineUsers.add(username);
 
-  // Welcome message
+  // Send welcome message
   io.emit("system", `${username} joined the chat`);
   io.emit("userList", Array.from(onlineUsers));
   messages.forEach(msg => socket.emit("chat", msg));
 
   // --- Handle chat ---
   socket.on("chat", (msg) => {
-    // Check mute
+    // Mute check
     if (mutedUsers[username] && Date.now() < mutedUsers[username]) {
-      socket.emit("muted", {
-        until: mutedUsers[username],
-        reason: "You have been muted by an admin"
-      });
+      socket.emit("muted", { until: mutedUsers[username], reason: "You have been muted by an admin" });
       return;
     }
 
@@ -93,7 +110,6 @@ io.on("connection", (socket) => {
     if (admins.includes(username) && msg.startsWith("/")) {
       const parts = msg.split(" ");
       const command = parts[0].toLowerCase();
-
       switch (command) {
         case "/kick":
           const target = parts[1];
@@ -109,14 +125,14 @@ io.on("connection", (socket) => {
           return;
         case "/mute":
           const userToMute = parts[1];
-          const duration = parseInt(parts[2]) || 60; // default 60 seconds
+          const duration = parseInt(parts[2]) || 60;
           mutedUsers[userToMute] = Date.now() + duration * 1000;
           io.emit("system", `${userToMute} was muted for ${duration} seconds`);
           return;
       }
     }
 
-    // --- Whisper / Reply ---
+    // --- Whisper ---
     if (msg.startsWith("/whisper ")) {
       const parts = msg.split(" ");
       const targetUser = parts[1];
@@ -130,6 +146,14 @@ io.on("connection", (socket) => {
         }
       }
 
+      const messageObj = {
+        user: username,
+        message: `(Whisper to ${targetUser}) ${whisperMsg}`,
+        timestamp: Date.now(),
+        ip: socket.handshake.address
+      };
+      messages.push(messageObj);
+
       if (targetSocket) {
         targetSocket.emit("whisper", { from: username, message: whisperMsg });
         socket.emit("whisper", { from: username, message: whisperMsg });
@@ -140,6 +164,7 @@ io.on("connection", (socket) => {
       return;
     }
 
+    // --- Reply ---
     if (msg.startsWith("/r ")) {
       const replyMsg = msg.slice(3);
       const replyTo = lastWhisperFrom[username];
@@ -156,6 +181,14 @@ io.on("connection", (socket) => {
         }
       }
 
+      const messageObj = {
+        user: username,
+        message: `(Whisper reply to ${replyTo}) ${replyMsg}`,
+        timestamp: Date.now(),
+        ip: socket.handshake.address
+      };
+      messages.push(messageObj);
+
       if (targetSocket) {
         targetSocket.emit("whisper", { from: username, message: replyMsg });
         socket.emit("whisper", { from: username, message: replyMsg });
@@ -166,13 +199,13 @@ io.on("connection", (socket) => {
       return;
     }
 
-    // Broadcast normal message
-    const messageObj = { user: username, message: msg };
+    // --- Normal message ---
+    const messageObj = { user: username, message: msg, timestamp: Date.now(), ip: socket.handshake.address };
     messages.push(messageObj);
     io.emit("chat", messageObj);
   });
 
-  // --- Handle disconnect ---
+  // --- Disconnect ---
   socket.on("disconnect", () => {
     onlineUsers.delete(username);
     io.emit("system", `${username} left the chat`);
