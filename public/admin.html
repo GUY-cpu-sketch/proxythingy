@@ -26,7 +26,7 @@
   <script type="module">
     const tableBody = document.querySelector("#messagesTable tbody");
     const refreshBtn = document.getElementById("refresh");
-    const user = prompt("Enter admin username:"); // Only DEV can view
+    const user = prompt("Enter admin username:"); // only DEV can view
 
     async function loadMessages() {
       tableBody.innerHTML = "";
@@ -37,7 +37,7 @@
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td>${new Date(m.timestamp).toLocaleString()}</td>
-          <td>${m.username}</td>
+          <td>${m.user}</td>   <!-- fixed from m.username -->
           <td>${m.ip}</td>
           <td>${m.message}</td>
         `;
