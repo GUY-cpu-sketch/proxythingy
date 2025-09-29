@@ -5,11 +5,13 @@ const chatForm = document.getElementById("chatForm");
 const chatInput = document.getElementById("chatInput");
 const userListEl = document.getElementById("userList");
 
-if (!window.sessionData || !window.sessionData.username) {
+// Get username from sessionStorage
+const username = sessionStorage.getItem("username");
+
+if (!username) {
   alert("Please login first.");
   window.location.href = "/";
 } else {
-  const username = window.sessionData.username;
   const socket = io({ auth: { username } });
 
   socket.on("chat", data => {
@@ -44,17 +46,24 @@ if (!window.sessionData || !window.sessionData.username) {
 
   chatForm.addEventListener("submit", e => {
     e.preventDefault();
-    const msg = chatInput.value.trim();
-    if (!msg) return;
+    const message = chatInput.value.trim();
+    if (!message) return;
 
-    // Admin commands (DEV only)
-    if (username === "DEV" && msg.startsWith("/")) {
-      socket.emit("chat", msg);
-      chatInput.value = "";
-      return;
+    if (username === "DEV") {
+      if (message.startsWith("/kick ")) {
+        const target = message.split(" ")[1];
+        socket.emit("adminKick", target);
+        chatInput.value = "";
+        return;
+      }
+      if (message === "/clear") {
+        socket.emit("adminClear");
+        chatInput.value = "";
+        return;
+      }
     }
 
-    socket.emit("chat", msg);
+    socket.emit("chat", message);
     chatInput.value = "";
   });
 }
