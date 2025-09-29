@@ -99,13 +99,15 @@ io.on("connection", (socket) => {
 
   // --- Handle chat ---
   socket.on("chat", (msg) => {
+    if (!msg) return;
+
     // Check mute
     if (mutedUsers[username] && Date.now() < mutedUsers[username]) {
       socket.emit("muted", { until: mutedUsers[username], reason: "You have been muted by an admin" });
       return;
     }
 
-    // Admin commands
+    // --- Admin commands ---
     if (msg.startsWith("/")) {
       const parts = msg.split(" ");
       const command = parts[0].toLowerCase();
@@ -114,7 +116,8 @@ io.on("connection", (socket) => {
         switch (command) {
           case "/kick":
             const target = parts[1];
-            for (let [id, s] of io.sockets.sockets) {
+            if (!target) return;
+            for (let s of io.sockets.sockets.values()) {
               if (s.username === target) s.disconnect(true);
             }
             io.emit("system", `${target} was kicked by admin`);
@@ -129,6 +132,7 @@ io.on("connection", (socket) => {
           case "/mute":
             const userToMute = parts[1];
             const duration = parseInt(parts[2]) || 60;
+            if (!userToMute) return;
             mutedUsers[userToMute] = Date.now() + duration * 1000;
             io.emit("system", `${userToMute} was muted for ${duration} seconds`);
             return;
@@ -139,23 +143,26 @@ io.on("connection", (socket) => {
       }
     }
 
-    // --- Whisper (any user can use) ---
+    // --- Whisper (anyone) ---
     if (msg.startsWith("/whisper ")) {
       const parts = msg.split(" ");
       const targetUser = parts[1];
       const whisperMsg = parts.slice(2).join(" ");
+      if (!targetUser || !whisperMsg) return;
 
-      let targetSocket;
-      for (let [id, s] of io.sockets.sockets) {
-        if (s.username === targetUser) targetSocket = s;
-      }
+      const targetSocket = Array.from(io.sockets.sockets.values()).find(s => s.username === targetUser);
 
-      const messageObj = { user: username, message: `(Whisper to ${targetUser}) ${whisperMsg}`, timestamp: Date.now(), ip: socket.handshake.address };
+      const messageObj = {
+        user: username,
+        message: `(Whisper to ${targetUser}) ${whisperMsg}`,
+        timestamp: Date.now(),
+        ip: socket.handshake.address || "Unknown"
+      };
       messages.push(messageObj);
 
       if (targetSocket) {
-        targetSocket.emit("whisper", { from: username, message: whisperMsg });
-        socket.emit("whisper", { from: username, message: whisperMsg });
+        targetSocket.emit("whisper", { from: username, message: whisperMsg, ip: socket.handshake.address || "Unknown" });
+        socket.emit("whisper", { from: username, message: whisperMsg, ip: socket.handshake.address || "Unknown" });
         lastWhisperFrom[targetUser] = username;
       } else {
         socket.emit("system", `User "${targetUser}" not found`);
@@ -163,7 +170,7 @@ io.on("connection", (socket) => {
       return;
     }
 
-    // --- Reply ---
+    // --- Reply /r (anyone) ---
     if (msg.startsWith("/r ")) {
       const replyMsg = msg.slice(3);
       const replyTo = lastWhisperFrom[username];
@@ -172,17 +179,19 @@ io.on("connection", (socket) => {
         return;
       }
 
-      let targetSocket;
-      for (let [id, s] of io.sockets.sockets) {
-        if (s.username === replyTo) targetSocket = s;
-      }
+      const targetSocket = Array.from(io.sockets.sockets.values()).find(s => s.username === replyTo);
 
-      const messageObj = { user: username, message: `(Whisper reply to ${replyTo}) ${replyMsg}`, timestamp: Date.now(), ip: socket.handshake.address };
+      const messageObj = {
+        user: username,
+        message: `(Whisper reply to ${replyTo}) ${replyMsg}`,
+        timestamp: Date.now(),
+        ip: socket.handshake.address || "Unknown"
+      };
       messages.push(messageObj);
 
       if (targetSocket) {
-        targetSocket.emit("whisper", { from: username, message: replyMsg });
-        socket.emit("whisper", { from: username, message: replyMsg });
+        targetSocket.emit("whisper", { from: username, message: replyMsg, ip: socket.handshake.address || "Unknown" });
+        socket.emit("whisper", { from: username, message: replyMsg, ip: socket.handshake.address || "Unknown" });
         lastWhisperFrom[replyTo] = username;
       } else {
         socket.emit("system", `User "${replyTo}" not found`);
@@ -191,7 +200,12 @@ io.on("connection", (socket) => {
     }
 
     // --- Normal message ---
-    const messageObj = { user: username, message: msg, timestamp: Date.now(), ip: socket.handshake.address };
+    const messageObj = {
+      user: username,
+      message: msg,
+      timestamp: Date.now(),
+      ip: socket.handshake.address || "Unknown"
+    };
     messages.push(messageObj);
     io.emit("chat", messageObj);
   });
