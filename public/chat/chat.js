@@ -1,50 +1,76 @@
-const socket = io();
-const chatForm = document.createElement("form");
-chatForm.id = "chatForm";
+import { io } from "https://cdn.socket.io/4.7.2/socket.io.esm.min.js";
 
-const chatBox = document.createElement("div");
-chatBox.id = "chatBox";
-chatBox.style.height = "400px";
-chatBox.style.overflowY = "auto";
-chatBox.style.border = "1px solid #ccc";
-chatBox.style.padding = "10px";
-document.body.appendChild(chatBox);
+const chatBox = document.getElementById("chatBox");
+const chatForm = document.getElementById("chatForm");
+const chatInput = document.getElementById("chatInput");
+const userListEl = document.getElementById("userList");
 
-const input = document.createElement("input");
-input.type = "text";
-input.id = "chatInput";
-input.placeholder = "Type a message...";
-chatForm.appendChild(input);
+// --- Load session ---
+let sessionData = JSON.parse(localStorage.getItem("sessionData"));
+if (!sessionData || !sessionData.username) {
+  alert("Please login first.");
+  window.location.href = "/login.html";
+} else {
+  const username = sessionData.username;
+  const socket = io({ auth: { username } });
 
-const sendBtn = document.createElement("button");
-sendBtn.textContent = "Send";
-chatForm.appendChild(sendBtn);
+  // --- Normal chat messages ---
+  socket.on("chat", msg => {
+    const p = document.createElement("p");
+    p.innerHTML = `<strong>${msg.username}:</strong> ${msg.message}`;
+    chatBox.appendChild(p);
+    chatBox.scrollTop = chatBox.scrollHeight;
+  });
 
-document.body.appendChild(chatForm);
+  // --- Whisper messages ---
+  socket.on("whisper", ({ from, message }) => {
+    const p = document.createElement("p");
+    p.style.color = "purple";
+    p.innerHTML = `<em>(Whisper) ${from}:</em> ${message}`;
+    chatBox.appendChild(p);
+    chatBox.scrollTop = chatBox.scrollHeight;
+  });
 
-// Grab username from cookie
-function getCookie(name) {
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) return parts.pop().split(";").shift();
+  // --- System messages ---
+  socket.on("system", msg => {
+    const p = document.createElement("p");
+    p.style.fontStyle = "italic";
+    p.style.color = "#999";
+    p.textContent = msg;
+    chatBox.appendChild(p);
+    chatBox.scrollTop = chatBox.scrollHeight;
+  });
+
+  // --- Forced close (from /close command) ---
+  socket.on("forceClose", () => {
+    alert("An admin has closed your chat tab.");
+    window.close();
+  });
+
+  // --- Muted warning ---
+  socket.on("muted", info => {
+    const untilTime = new Date(info.until).toLocaleTimeString();
+    alert(`⛔ ${info.reason}. You are muted until ${untilTime}.`);
+  });
+
+  // --- User list ---
+  socket.on("userList", users => {
+    userListEl.innerHTML = "";
+    users.forEach(u => {
+      const li = document.createElement("li");
+      li.textContent = u;
+      userListEl.appendChild(li);
+    });
+  });
+
+  // --- Send chat ---
+  chatForm.addEventListener("submit", e => {
+    e.preventDefault();
+    const message = chatInput.value.trim();
+    if (!message) return;
+
+    // Send to server
+    socket.emit("chat", message);
+    chatInput.value = "";
+  });
 }
-
-const username = getCookie("username") || "Anon";
-socket.emit("setUser", username);
-
-// Receive chat
-socket.on("chat", (data) => {
-  const p = document.createElement("p");
-  p.textContent = `${data.user}: ${data.message}`;
-  chatBox.appendChild(p);
-  chatBox.scrollTop = chatBox.scrollHeight;
-});
-
-// Send chat
-chatForm.addEventListener("submit", (e) => {
-  e.preventDefault();
-  const msg = input.value.trim();
-  if (!msg) return;
-  socket.emit("chat", msg);
-  input.value = "";
-});
