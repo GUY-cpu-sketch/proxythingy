@@ -5,7 +5,6 @@ const chatForm = document.getElementById("chatForm");
 const chatInput = document.getElementById("chatInput");
 const userListEl = document.getElementById("userList");
 
-// --- Load session ---
 let sessionData = JSON.parse(localStorage.getItem("sessionData"));
 if (!sessionData || !sessionData.username) {
   alert("Please login first.");
@@ -14,10 +13,8 @@ if (!sessionData || !sessionData.username) {
   const username = sessionData.username;
   const socket = io({ auth: { username } });
 
-  // --- Register to get past messages ---
   socket.emit("registerChatClient");
 
-  // --- Normal chat messages ---
   socket.on("chat", data => {
     const p = document.createElement("p");
     p.innerHTML = `<strong>${data.user}:</strong> ${data.message}`;
@@ -25,7 +22,6 @@ if (!sessionData || !sessionData.username) {
     chatBox.scrollTop = chatBox.scrollHeight;
   });
 
-  // --- Whisper messages ---
   socket.on("whisper", ({ from, message }) => {
     const p = document.createElement("p");
     p.style.color = "purple";
@@ -34,7 +30,6 @@ if (!sessionData || !sessionData.username) {
     chatBox.scrollTop = chatBox.scrollHeight;
   });
 
-  // --- System messages ---
   socket.on("system", msg => {
     const p = document.createElement("p");
     p.style.fontStyle = "italic";
@@ -44,12 +39,10 @@ if (!sessionData || !sessionData.username) {
     chatBox.scrollTop = chatBox.scrollHeight;
   });
 
-  // --- Clear chat for chat.html only ---
-  socket.on("clearChat", () => {
-    chatBox.innerHTML = "";
-  });
+  socket.on("clearChat", () => chatBox.innerHTML = "");
+  socket.on("muted", info => alert(`⛔ ${info.reason}. You are muted until ${new Date(info.until).toLocaleTimeString()}`));
+  socket.on("forceClose", () => { alert("DEV closed your chat."); window.open('', '_self'); window.close(); setTimeout(()=>{window.location.href="/closed.html";},500); });
 
-  // --- User list ---
   socket.on("userList", users => {
     userListEl.innerHTML = "";
     users.forEach(u => {
@@ -59,27 +52,10 @@ if (!sessionData || !sessionData.username) {
     });
   });
 
-  // --- Muted warning ---
-  socket.on("muted", info => {
-    const untilTime = new Date(info.until).toLocaleTimeString();
-    alert(`⛔ ${info.reason}. You are muted until ${untilTime}.`);
-  });
-
-  // --- Force close by admin ---
-  socket.on("forceClose", () => {
-    alert("⚠️ DEV has closed your chat. This tab will now close.");
-    window.open('', '_self'); // detach opener
-    window.close();
-    setTimeout(() => { window.location.href = "/closed.html"; }, 500);
-  });
-
-  // --- Send chat messages ---
   chatForm.addEventListener("submit", e => {
     e.preventDefault();
     const message = chatInput.value.trim();
     if (!message) return;
-
-    // Admin commands handled server-side
     socket.emit("chat", message);
     chatInput.value = "";
   });
