@@ -122,7 +122,90 @@ input[type="password"] {
 
 #chatForm button:hover {
   background: #44475a;
+}/* --- Landing Container --- */
+.landing-container {
+  max-width: 900px;
+  margin: 40px auto;
+  padding: 30px;
+  background: #1e1e2f;
+  border-radius: 15px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+  color: #eee;
+  font-family: 'Arial', sans-serif;
+  text-align: center;
 }
+
+/* --- Headings --- */
+.landing-container h1 {
+  font-size: 2.5em;
+  color: #50fa7b;
+  margin-bottom: 15px;
+}
+
+.landing-container p {
+  font-size: 1.1em;
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+
+/* --- Rules Box --- */
+.rules {
+  background: #2e2e44;
+  padding: 20px 25px;
+  border-radius: 12px;
+  margin: 25px 0;
+  border: 1px solid #444;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+  text-align: left;
+}
+
+.rules h2 {
+  color: #50fa7b;
+  margin-bottom: 12px;
+}
+
+.rules ul {
+  list-style: disc inside;
+  padding-left: 0;
+}
+
+.rules ul li {
+  margin-bottom: 10px;
+  color: #eee;
+  line-height: 1.5;
+}
+
+/* --- Landing Buttons --- */
+.landing-buttons {
+  margin-top: 20px;
+}
+
+.btn {
+  display: inline-block;
+  background-color: #50fa7b;
+  color: #1e1e2f;
+  font-weight: bold;
+  text-decoration: none;
+  padding: 12px 25px;
+  border-radius: 10px;
+  margin: 10px;
+  transition: all 0.25s ease;
+}
+
+.btn:hover {
+  background-color: #40d36a;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+}
+
+/* --- Welcome Image --- */
+.welcome-image img {
+  max-width: 100%;
+  border-radius: 12px;
+  margin-top: 20px;
+  box-shadow: 0 6px 15px rgba(0,0,0,0.5);
+}
+
 
 /* -------------------- User List -------------------- */
 #userList {
