@@ -16,7 +16,7 @@ const io = new Server(server);
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-const dbPath = path.join("/opt/render/project/data", "database.sqlite");
+const dbPath = path.join("/opt/render/project/data", "database.sqlite"); // persistent
 let db;
 const admins = ["DEV"];
 let messages = [];
@@ -35,12 +35,18 @@ const users = {}; // username -> socket
   )`);
 })();
 
-// --- Routes ---
+// --- Pretty URL routes ---
 app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public/index.html")));
-app.get("/login.html", (req, res) => res.sendFile(path.join(__dirname, "public/login.html")));
-app.get("/register.html", (req, res) => res.sendFile(path.join(__dirname, "public/register.html")));
-app.get("/chat.html", (req, res) => res.sendFile(path.join(__dirname, "public/chat.html")));
-app.get("/admin.html", (req, res) => res.sendFile(path.join(__dirname, "public/admin.html")));
+app.get("/login", (req, res) => res.sendFile(path.join(__dirname, "public/login.html")));
+app.get("/register", (req, res) => res.sendFile(path.join(__dirname, "public/register.html")));
+app.get("/chat", (req, res) => res.sendFile(path.join(__dirname, "public/chat.html")));
+app.get("/admin", (req, res) => res.sendFile(path.join(__dirname, "public/admin.html")));
+
+// Redirect old .html URLs
+app.get("/login.html", (req, res) => res.redirect("/login"));
+app.get("/register.html", (req, res) => res.redirect("/register"));
+app.get("/chat.html", (req, res) => res.redirect("/chat"));
+app.get("/admin.html", (req, res) => res.redirect("/admin"));
 
 // --- Auth ---
 app.post("/register", async (req, res) => {
@@ -100,20 +106,20 @@ io.on("connection", (socket) => {
     messages.forEach(msg => socket.emit("chat", msg));
   });
 
-  // --- Chat handler ---
   socket.on("chat", (msg) => {
     if (!msg) return;
 
-    // Mute check
+    // --- Mute check ---
     if (mutedUsers[username] && Date.now() < mutedUsers[username]) {
       socket.emit("muted", { until: mutedUsers[username], reason: "You have been muted by an admin" });
       return;
     }
 
-    // Admin commands
+    // --- Admin commands ---
     if (admins.includes(username) && msg.startsWith("/")) {
       const parts = msg.split(" ");
       const command = parts[0].toLowerCase();
+
       switch (command) {
         case "/kick": {
           const target = parts[1];
@@ -143,7 +149,7 @@ io.on("connection", (socket) => {
             io.emit("system", `DEV closed ${target}'s chat`);
             messages.push({ user: "SYSTEM", message: `DEV closed ${target}'s chat`, ip: "-", timestamp: Date.now() });
           } else {
-            socket.emit("system", `User ${target} not found`);
+            socket.emit("system", `User "${target}" not found`);
           }
           return;
         }
@@ -156,16 +162,13 @@ io.on("connection", (socket) => {
       const target = parts[1];
       const messageText = parts.slice(2).join(" ");
       const targetSocket = users[target];
-      if (targetSocket) {
-        const messageObj = { user: `(Whisper) ${username} → ${target}`, message: messageText, timestamp: Date.now(), ip };
-        messages.push(messageObj);
-        socket.emit("whisper", { from: username, message: messageText });
-        targetSocket.emit("whisper", { from: username, message: messageText });
-        io.emit("chat", messageObj); // admin panel
-        lastWhisperFrom[target] = username;
-      } else {
-        socket.emit("system", `User "${target}" not found`);
-      }
+      if (!targetSocket) { socket.emit("system", `User "${target}" not found`); return; }
+      const messageObj = { user: `(Whisper) ${username} → ${target}`, message: messageText, timestamp: Date.now(), ip };
+      messages.push(messageObj);
+      socket.emit("whisper", { from: username, message: messageText });
+      targetSocket.emit("whisper", { from: username, message: messageText });
+      io.emit("chat", messageObj);
+      lastWhisperFrom[target] = username;
       return;
     }
 
@@ -194,7 +197,6 @@ io.on("connection", (socket) => {
     io.emit("chat", messageObj);
   });
 
-  // Disconnect
   socket.on("disconnect", () => {
     delete users[username];
     onlineUsers.delete(username);
