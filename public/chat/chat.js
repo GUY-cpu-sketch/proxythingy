@@ -1,10 +1,5 @@
 import { io } from "https://cdn.socket.io/4.7.2/socket.io.esm.min.js";
 
-const chatBox = document.getElementById("chatBox");
-const chatForm = document.getElementById("chatForm");
-const chatInput = document.getElementById("chatInput");
-const userListEl = document.getElementById("userList");
-
 // --- Load session ---
 const sessionData = JSON.parse(localStorage.getItem("sessionData"));
 if (!sessionData || !sessionData.username) {
@@ -14,7 +9,45 @@ if (!sessionData || !sessionData.username) {
   const username = sessionData.username;
   const socket = io({ auth: { username } });
 
-  // --- Receive normal chat ---
+  // --- Build DOM dynamically ---
+  const container = document.createElement("div");
+  container.classList.add("container", "chat-container");
+
+  const title = document.createElement("h1");
+  title.textContent = "Chat Room";
+
+  const chatBox = document.createElement("div");
+  chatBox.id = "chatBox";
+  chatBox.classList.add("chat-box");
+
+  const userListEl = document.createElement("ul");
+  userListEl.id = "userList";
+  userListEl.classList.add("user-list");
+
+  const chatForm = document.createElement("form");
+  chatForm.id = "chatForm";
+
+  const chatInput = document.createElement("input");
+  chatInput.type = "text";
+  chatInput.id = "chatInput";
+  chatInput.placeholder = "Type a message...";
+  chatInput.autocomplete = "off";
+
+  const sendButton = document.createElement("button");
+  sendButton.type = "submit";
+  sendButton.textContent = "Send";
+
+  chatForm.appendChild(chatInput);
+  chatForm.appendChild(sendButton);
+
+  container.appendChild(title);
+  container.appendChild(chatBox);
+  container.appendChild(userListEl);
+  container.appendChild(chatForm);
+
+  document.body.appendChild(container);
+
+  // --- Socket events ---
   socket.on("chat", data => {
     const p = document.createElement("p");
     p.innerHTML = `<strong>${data.user}:</strong> ${data.message}`;
@@ -22,7 +55,6 @@ if (!sessionData || !sessionData.username) {
     chatBox.scrollTop = chatBox.scrollHeight;
   });
 
-  // --- Receive whispers ---
   socket.on("whisper", ({ from, message }) => {
     const p = document.createElement("p");
     p.style.color = "#ffb86c";
@@ -31,7 +63,6 @@ if (!sessionData || !sessionData.username) {
     chatBox.scrollTop = chatBox.scrollHeight;
   });
 
-  // --- System messages ---
   socket.on("system", msg => {
     const p = document.createElement("p");
     p.style.fontStyle = "italic";
@@ -41,7 +72,6 @@ if (!sessionData || !sessionData.username) {
     chatBox.scrollTop = chatBox.scrollHeight;
   });
 
-  // --- Update user list ---
   socket.on("userList", users => {
     userListEl.innerHTML = "";
     users.forEach(u => {
@@ -51,19 +81,16 @@ if (!sessionData || !sessionData.username) {
     });
   });
 
-  // --- Muted warning ---
   socket.on("muted", info => {
     const untilTime = new Date(info.until).toLocaleTimeString();
     alert(`⛔ ${info.reason}. You are muted until ${untilTime}.`);
   });
 
-  // --- Force tab close ---
   socket.on("forceClose", () => {
     alert("Admin closed your chat. Closing window...");
     window.close();
   });
 
-  // --- Clear chat box ---
   socket.on("clearChat", () => {
     chatBox.innerHTML = "";
   });
@@ -74,7 +101,7 @@ if (!sessionData || !sessionData.username) {
     const message = chatInput.value.trim();
     if (!message) return;
 
-    socket.emit("chat", message); // sends message to server
+    socket.emit("chat", message);
     chatInput.value = "";
   });
 }
