@@ -20,8 +20,9 @@ let db;
 let messages = [];
 let mutedUsers = {};
 let lastWhisperFrom = {};
-let onlineUsers = new Set();
 const admins = ["DEV"];
+const onlineUsers = new Set();
+const users = {}; // username -> socket
 
 // --- Initialize SQLite ---
 (async () => {
@@ -80,13 +81,15 @@ io.use((socket, next) => {
 io.on("connection", (socket) => {
   const username = socket.username;
   const ip = socket.handshake.headers["x-forwarded-for"]?.split(",")[0] || socket.handshake.address;
+
+  users[username] = socket;
   onlineUsers.add(username);
 
   // System join message
   io.emit("system", `${username} joined the chat`);
   io.emit("userList", Array.from(onlineUsers));
 
-  // Mark client as chat.html for sending history
+  // Register chat client to send past messages
   socket.on("registerChatClient", () => {
     messages.forEach(msg => socket.emit("chat", msg));
   });
@@ -99,22 +102,7 @@ io.on("connection", (socket) => {
     if (mutedUsers[username] && Date.now() < mutedUsers[username]) {
       socket.emit("muted", { until: mutedUsers[username], reason: "You have been muted by an admin" });
       return;
-    }// inside socket.on("chat", msg => { ... })
-
-// --- Admin-only: Close a user's tab ---
-    if (msg.startsWith("/close ") && socket.username === "DEV") {
-      const target = msg.split(" ")[1];
-      const targetSocket = users[target];
-      if (targetSocket) {
-        targetSocket.emit("forceClose");
-        io.emit("system", `DEV closed ${target}'s chat.`);
-      } else {
-        socket.emit("system", `User ${target} not found.`);
-      }
-      return;
     }
-
-    
 
     // --- Admin commands ---
     if (admins.includes(username) && msg.startsWith("/")) {
@@ -124,15 +112,15 @@ io.on("connection", (socket) => {
       switch (command) {
         case "/kick": {
           const target = parts[1];
-          const targetSocket = Array.from(io.sockets.sockets.values()).find(s => s.username === target);
+          const targetSocket = users[target];
           if (targetSocket) targetSocket.disconnect(true);
-          io.emit("system", `${username} kicked ${target}`);
+          io.emit("system", `DEV kicked ${target}`);
           return;
         }
         case "/clear": {
           messages = [];
           io.emit("clearChat"); // Only chat.html listens
-          io.emit("system", `${username} cleared the chat`);
+          io.emit("system", "DEV cleared the chat");
           return;
         }
         case "/mute": {
@@ -144,13 +132,13 @@ io.on("connection", (socket) => {
         }
         case "/close": {
           const target = parts[1];
-          if (!target) { socket.emit("system", "Usage: /close [username]"); return; }
-          const targetSocket = Array.from(io.sockets.sockets.values()).find(s => s.username === target);
+          const targetSocket = users[target];
           if (targetSocket) {
-            targetSocket.emit("closeTab");
-            io.emit("system", `${username} closed ${target}'s chat`);
+            targetSocket.emit("forceClose");
+            io.emit("system", `DEV closed ${target}'s chat`);
+            messages.push({ user: "SYSTEM", message: `DEV closed ${target}'s chat`, ip: "-", timestamp: Date.now() });
           } else {
-            socket.emit("system", `User "${target}" not found`);
+            socket.emit("system", `User ${target} not found`);
           }
           return;
         }
@@ -162,7 +150,7 @@ io.on("connection", (socket) => {
       const parts = msg.split(" ");
       const target = parts[1];
       const messageText = parts.slice(2).join(" ");
-      const targetSocket = Array.from(io.sockets.sockets.values()).find(s => s.username === target);
+      const targetSocket = users[target];
 
       if (targetSocket) {
         const messageObj = {
@@ -187,7 +175,7 @@ io.on("connection", (socket) => {
       const replyMsg = msg.slice(3).trim();
       const replyTo = lastWhisperFrom[username];
       if (!replyTo) { socket.emit("system", "No one to reply to."); return; }
-      const targetSocket = Array.from(io.sockets.sockets.values()).find(s => s.username === replyTo);
+      const targetSocket = users[replyTo];
       if (targetSocket) {
         const messageObj = {
           user: `(Whisper) ${username} → ${replyTo}`,
@@ -214,13 +202,12 @@ io.on("connection", (socket) => {
 
   // Disconnect
   socket.on("disconnect", () => {
+    delete users[username];
     onlineUsers.delete(username);
     io.emit("system", `${username} left the chat`);
     io.emit("userList", Array.from(onlineUsers));
   });
 });
-
-
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
