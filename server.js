@@ -99,7 +99,22 @@ io.on("connection", (socket) => {
     if (mutedUsers[username] && Date.now() < mutedUsers[username]) {
       socket.emit("muted", { until: mutedUsers[username], reason: "You have been muted by an admin" });
       return;
+    }// inside socket.on("chat", msg => { ... })
+
+// --- Admin-only: Close a user's tab ---
+    if (msg.startsWith("/close ") && socket.username === "DEV") {
+      const target = msg.split(" ")[1];
+      const targetSocket = users[target];
+      if (targetSocket) {
+        targetSocket.emit("forceClose");
+        io.emit("system", `DEV closed ${target}'s chat.`);
+      } else {
+        socket.emit("system", `User ${target} not found.`);
+      }
+      return;
     }
+
+    
 
     // --- Admin commands ---
     if (admins.includes(username) && msg.startsWith("/")) {
@@ -204,6 +219,8 @@ io.on("connection", (socket) => {
     io.emit("userList", Array.from(onlineUsers));
   });
 });
+
+
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
