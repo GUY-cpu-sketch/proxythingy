@@ -6,26 +6,13 @@
 <title>Admin Panel</title>
 <link rel="stylesheet" href="/style.css">
 <style>
-  .admin-container {
-    max-width: 1200px;
-    margin: 20px auto;
-    padding: 10px;
-  }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    table-layout: fixed;
-  }
-  th, td {
-    padding: 10px;
-    border: 1px solid #ccc;
-    text-align: left;
-    word-wrap: break-word;
-  }
-  th:nth-child(1) { width: 20%; } /* Time */
-  th:nth-child(2) { width: 20%; } /* User */
-  th:nth-child(3) { width: 20%; } /* IP */
-  th:nth-child(4) { width: 40%; } /* Message */
+  .admin-container { max-width: 1200px; margin: 20px auto; padding: 10px; }
+  table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  th, td { padding: 10px; border: 1px solid #ccc; text-align: left; word-wrap: break-word; }
+  th:nth-child(1) { width: 20%; } 
+  th:nth-child(2) { width: 20%; } 
+  th:nth-child(3) { width: 20%; } 
+  th:nth-child(4) { width: 40%; } 
 </style>
 </head>
 <body>
@@ -48,7 +35,7 @@
 import { io } from "https://cdn.socket.io/4.7.2/socket.io.esm.min.js";
 
 const tableBody = document.querySelector("#messagesTable tbody");
-const adminUser = prompt("Enter admin username:"); // must be DEV
+const adminUser = prompt("Enter admin username:");
 if (!adminUser) { alert("Admin username required"); throw new Error("Admin username required"); }
 
 const socket = io({ auth: { username: adminUser } });
