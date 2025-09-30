@@ -12,7 +12,9 @@ if (!sessionData || !sessionData.username) {
   window.location.href = "/login.html";
 } else {
   const username = sessionData.username;
-  const socket = io({ auth: { username } });
+
+  // Connect to the correct server origin
+  const socket = io(window.location.origin, { auth: { username } });
 
   // --- Display chat messages ---
   socket.on("chat", data => {
@@ -25,13 +27,13 @@ if (!sessionData || !sessionData.username) {
   // --- Display whispers ---
   socket.on("whisper", ({ from, message }) => {
     const p = document.createElement("p");
-    p.style.color = "purple"; // easier to see
+    p.style.color = "purple";
     p.innerHTML = `<em>(Whisper) ${from}:</em> ${message}`;
     chatBox.appendChild(p);
     chatBox.scrollTop = chatBox.scrollHeight;
   });
 
-  // --- System messages ---
+  // --- Display system messages ---
   socket.on("system", msg => {
     const p = document.createElement("p");
     p.style.fontStyle = "italic";
@@ -57,7 +59,7 @@ if (!sessionData || !sessionData.username) {
     alert(`⛔ ${info.reason}. You are muted until ${untilTime}.`);
   });
 
-  // --- Send chat ---
+  // --- Send chat message ---
   chatForm.addEventListener("submit", e => {
     e.preventDefault();
     const message = chatInput.value.trim();
