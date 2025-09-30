@@ -6,9 +6,14 @@
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 }
 
+/* FORCE all pages to use gradient background */
+html, body {
+  height: 100%;
+}
+
 body {
-  background: linear-gradient(135deg, #1f1c2c, #928dab);
-  color: #fff;
+  background: linear-gradient(135deg, #1f1c2c, #928dab) !important;
+  color: #fff !important;
   min-height: 100vh;
   display: flex;
   justify-content: center;
