@@ -17,13 +17,16 @@ const io = new Server(server);
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-// --- Persistent SQLite path for Render ---
+// --- Ensure Render data folder exists ---
 const dataDir = "/opt/render/project/data";
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+
+// --- Ensure SQLite file exists ---
 const dbPath = path.join(dataDir, "database.sqlite");
-let db;
+if (!fs.existsSync(dbPath)) fs.writeFileSync(dbPath, "");
 
 // --- Initialize SQLite ---
+let db;
 (async () => {
   db = await open({ filename: dbPath, driver: sqlite3.Database });
   await db.run(`CREATE TABLE IF NOT EXISTS users (
