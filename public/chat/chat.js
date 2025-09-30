@@ -4,48 +4,56 @@ import { io } from "https://cdn.socket.io/4.7.2/socket.io.esm.min.js";
 const sessionData = JSON.parse(localStorage.getItem("sessionData"));
 if (!sessionData || !sessionData.username) {
   alert("Please login first.");
-  window.location.href = "/login";
+  window.location.href = "/login.html";
 } else {
   const username = sessionData.username;
   const socket = io({ auth: { username } });
 
-  // --- Build DOM dynamically ---
-  const container = document.createElement("div");
-  container.classList.add("container", "chat-container");
+  // --- Check if container already exists ---
+  let container = document.querySelector(".chat-container");
+  if (!container) {
+    container = document.createElement("div");
+    container.classList.add("container", "chat-container");
 
-  const title = document.createElement("h1");
-  title.textContent = "Chat Room";
+    const title = document.createElement("h1");
+    title.textContent = "Chat Room";
 
-  const chatBox = document.createElement("div");
-  chatBox.id = "chatBox";
-  chatBox.classList.add("chat-box");
+    const chatBox = document.createElement("div");
+    chatBox.id = "chatBox";
+    chatBox.classList.add("chat-box");
 
-  const userListEl = document.createElement("ul");
-  userListEl.id = "userList";
-  userListEl.classList.add("user-list");
+    const userListEl = document.createElement("ul");
+    userListEl.id = "userList";
+    userListEl.classList.add("user-list");
 
-  const chatForm = document.createElement("form");
-  chatForm.id = "chatForm";
+    const chatForm = document.createElement("form");
+    chatForm.id = "chatForm";
 
-  const chatInput = document.createElement("input");
-  chatInput.type = "text";
-  chatInput.id = "chatInput";
-  chatInput.placeholder = "Type a message...";
-  chatInput.autocomplete = "off";
+    const chatInput = document.createElement("input");
+    chatInput.type = "text";
+    chatInput.id = "chatInput";
+    chatInput.placeholder = "Type a message...";
+    chatInput.autocomplete = "off";
 
-  const sendButton = document.createElement("button");
-  sendButton.type = "submit";
-  sendButton.textContent = "Send";
+    const sendButton = document.createElement("button");
+    sendButton.type = "submit";
+    sendButton.textContent = "Send";
 
-  chatForm.appendChild(chatInput);
-  chatForm.appendChild(sendButton);
+    chatForm.appendChild(chatInput);
+    chatForm.appendChild(sendButton);
 
-  container.appendChild(title);
-  container.appendChild(chatBox);
-  container.appendChild(userListEl);
-  container.appendChild(chatForm);
+    container.appendChild(title);
+    container.appendChild(chatBox);
+    container.appendChild(userListEl);
+    container.appendChild(chatForm);
 
-  document.body.appendChild(container);
+    document.body.appendChild(container);
+  }
+
+  const chatBox = document.getElementById("chatBox");
+  const chatForm = document.getElementById("chatForm");
+  const chatInput = document.getElementById("chatInput");
+  const userListEl = document.getElementById("userList");
 
   // --- Socket events ---
   socket.on("chat", data => {
@@ -100,7 +108,6 @@ if (!sessionData || !sessionData.username) {
     e.preventDefault();
     const message = chatInput.value.trim();
     if (!message) return;
-
     socket.emit("chat", message);
     chatInput.value = "";
   });
