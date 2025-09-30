@@ -14,70 +14,62 @@ if (!sessionData || !sessionData.username) {
   const username = sessionData.username;
   const socket = io({ auth: { username } });
 
-  // --- Load old messages ---
+  // Register for initial messages
   socket.emit("registerChatClient");
 
-  // --- Chat messages ---
-  socket.on("chat", data => {
+  socket.on("chat", data=>{
     const p = document.createElement("p");
     p.innerHTML = `<strong>${data.user}:</strong> ${data.message}`;
     chatBox.appendChild(p);
     chatBox.scrollTop = chatBox.scrollHeight;
   });
 
-  // --- Whisper messages ---
-  socket.on("whisper", ({ from, message }) => {
+  socket.on("whisper", ({ from, message })=>{
     const p = document.createElement("p");
-    p.style.color = "purple";
+    p.style.color="purple";
     p.innerHTML = `<em>(Whisper) ${from}:</em> ${message}`;
     chatBox.appendChild(p);
     chatBox.scrollTop = chatBox.scrollHeight;
   });
 
-  // --- System messages ---
-  socket.on("system", msg => {
+  socket.on("system", msg=>{
     const p = document.createElement("p");
-    p.style.fontStyle = "italic";
-    p.style.color = "#999";
+    p.style.fontStyle="italic";
+    p.style.color="#999";
     p.textContent = msg;
     chatBox.appendChild(p);
     chatBox.scrollTop = chatBox.scrollHeight;
   });
 
-  // --- Clear chat ---
-  socket.on("clearChat", () => {
-    chatBox.innerHTML = "";
-  });
-
-  // --- User list ---
-  socket.on("userList", users => {
-    userListEl.innerHTML = "";
-    users.forEach(u => {
+  socket.on("userList", users=>{
+    userListEl.innerHTML="";
+    users.forEach(u=>{
       const li = document.createElement("li");
       li.textContent = u;
       userListEl.appendChild(li);
     });
   });
 
-  // --- Muted warning ---
-  socket.on("muted", info => {
+  socket.on("muted", info=>{
     const untilTime = new Date(info.until).toLocaleTimeString();
     alert(`⛔ ${info.reason}. You are muted until ${untilTime}.`);
   });
 
-  // --- Force close ---
-  socket.on("forceClose", () => {
-    alert("Admin closed your chat.");
+  socket.on("forceClose", ()=>{
+    alert("Admin closed your chat. Closing window...");
     window.close();
   });
 
-  // --- Send chat ---
-  chatForm.addEventListener("submit", e => {
+  socket.on("clearChat", ()=>{
+    chatBox.innerHTML="";
+  });
+
+  chatForm.addEventListener("submit", e=>{
     e.preventDefault();
     const message = chatInput.value.trim();
-    if (!message) return;
+    if(!message) return;
 
     socket.emit("chat", message);
-    chatInput.value = "";
+    chatInput.value="";
   });
 }
