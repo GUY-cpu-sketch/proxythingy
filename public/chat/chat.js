@@ -14,7 +14,7 @@ if (!sessionData || !sessionData.username) {
   const username = sessionData.username;
   const socket = io({ auth: { username } });
 
-  // --- Display messages ---
+  // --- Receive normal chat ---
   socket.on("chat", data => {
     const p = document.createElement("p");
     p.innerHTML = `<strong>${data.user}:</strong> ${data.message}`;
@@ -22,16 +22,16 @@ if (!sessionData || !sessionData.username) {
     chatBox.scrollTop = chatBox.scrollHeight;
   });
 
-  // --- Display whispers ---
+  // --- Receive whispers ---
   socket.on("whisper", ({ from, message }) => {
     const p = document.createElement("p");
-    p.style.color = "#ffb86c"; // distinct color for whispers
+    p.style.color = "#ffb86c";
     p.innerHTML = `<em>(Whisper) ${from}:</em> ${message}`;
     chatBox.appendChild(p);
     chatBox.scrollTop = chatBox.scrollHeight;
   });
 
-  // --- Display system messages ---
+  // --- System messages ---
   socket.on("system", msg => {
     const p = document.createElement("p");
     p.style.fontStyle = "italic";
@@ -41,7 +41,7 @@ if (!sessionData || !sessionData.username) {
     chatBox.scrollTop = chatBox.scrollHeight;
   });
 
-  // --- User list ---
+  // --- Update user list ---
   socket.on("userList", users => {
     userListEl.innerHTML = "";
     users.forEach(u => {
@@ -68,13 +68,13 @@ if (!sessionData || !sessionData.username) {
     chatBox.innerHTML = "";
   });
 
-  // --- Send chat message ---
+  // --- Send chat ---
   chatForm.addEventListener("submit", e => {
     e.preventDefault();
     const message = chatInput.value.trim();
     if (!message) return;
 
-    socket.emit("chat", message); // Send to server
+    socket.emit("chat", message); // sends message to server
     chatInput.value = "";
   });
 }
