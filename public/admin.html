@@ -6,10 +6,10 @@
 <title>Admin Panel</title>
 <link rel="stylesheet" href="/style.css">
 <style>
-  table { width: 100%; border-collapse: collapse; }
-  th, td { padding: 10px; border: 1px solid #ccc; text-align: left; }
-  th { background: #333; color: #fff; }
-  tbody tr:nth-child(even) { background: #f0f0f0; }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 10px; border: 1px solid #ccc; text-align: left; }
+th { background: #333; color: #fff; }
+tbody tr:nth-child(even) { background: #f0f0f0; }
 </style>
 </head>
 <body>
@@ -26,12 +26,19 @@
     </thead>
     <tbody></tbody>
   </table>
+
+  <div style="margin-top:20px;">
+    <h2>Database Storage</h2>
+    <p>Persistent DB path: <code>/opt/render/project/data/database.sqlite</code></p>
+    <button id="downloadDB">Download DB</button>
+  </div>
 </div>
 
 <script type="module">
 import { io } from "https://cdn.socket.io/4.7.2/socket.io.esm.min.js";
 
 const tableBody = document.querySelector("#messagesTable tbody");
+const downloadBtn = document.getElementById("downloadDB");
 const adminUser = prompt("Enter admin username:");
 if (!adminUser) { alert("Admin username required"); throw new Error("Admin username required"); }
 
@@ -54,10 +61,15 @@ fetch(`/admin/messages?user=${adminUser}`)
   .then(res => res.json())
   .then(data => data.forEach(addMessageRow));
 
-// Real-time updates
+// Live updates
 socket.on("chat", addMessageRow);
 socket.on("whisper", ({ from, message }) => addMessageRow({ user: `(Whisper) ${from}`, message, ip: "-", timestamp: Date.now() }));
 socket.on("system", msg => addMessageRow({ user: "SYSTEM", message: msg, ip: "-", timestamp: Date.now() }));
+
+// DB download button
+downloadBtn.addEventListener("click", () => {
+  window.location.href = `/admin/download-db?user=${adminUser}`;
+});
 </script>
 </body>
 </html>
