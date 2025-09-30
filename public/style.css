@@ -1,4 +1,4 @@
-/* General reset */
+/* --- General reset & body --- */
 * {
   margin: 0;
   padding: 0;
@@ -6,196 +6,160 @@
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-/* Body */
 body {
-  background-color: #36393f;
-  color: #dcddde;
+  background: #f4f7f8;
+  color: #333;
+  min-height: 100vh;
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  min-height: 100vh;
   padding: 20px;
 }
 
-/* Landing container */
-.landing-container {
-  max-width: 500px;
+/* --- Container --- */
+.container {
+  background: #fff;
+  padding: 25px 30px;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+  max-width: 600px;
   width: 100%;
-  background-color: #2f3136;
-  border-radius: 10px;
-  padding: 20px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+}
+
+/* --- Headings --- */
+h1 {
+  font-size: 2rem;
+  margin-bottom: 20px;
+  text-align: center;
+  color: #222;
+}
+
+/* --- Buttons --- */
+button, .btn {
+  padding: 10px 20px;
+  border: none;
+  background: #007bff;
+  color: #fff;
+  font-weight: bold;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.3s;
+  text-decoration: none;
+  display: inline-block;
   text-align: center;
 }
 
-.landing-container h1 {
-  color: #fff;
+button:hover, .btn:hover {
+  background: #0056b3;
+}
+
+/* --- Forms --- */
+input[type="text"],
+input[type="password"] {
+  width: 100%;
+  padding: 10px 15px;
   margin-bottom: 15px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 1rem;
 }
 
-.landing-container p {
-  color: #b9bbbe;
-  margin-bottom: 20px;
+form button {
+  width: 100%;
 }
 
-/* Forms */
-input {
-  width: 90%;
-  padding: 10px;
-  margin: 5px 0;
-  border-radius: 5px;
-  border: none;
-  outline: none;
-  background-color: #202225;
-  color: #dcddde;
-}
-
-button {
-  width: 95%;
-  padding: 10px;
-  margin-top: 10px;
-  background-color: #7289da;
-  border: none;
-  border-radius: 5px;
-  color: white;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-button:hover {
-  background-color: #677bc4;
-}
-
-/* Chat container */
-#chatContainer {
+/* --- Chat Container --- */
+.chat-container {
   display: flex;
   flex-direction: column;
-  width: 100%;
-  max-width: 800px;
-  height: 600px;
-  background-color: #2f3136;
-  border-radius: 10px;
-  overflow: hidden;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.5);
-  margin-top: 20px;
+  gap: 15px;
 }
 
-/* Chat header */
-.chat-header {
-  background-color: #202225;
-  padding: 10px 15px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-weight: bold;
-  color: #fff;
-}
-
-/* Chat messages */
-.chat-box {
-  flex: 1;
-  padding: 10px;
+#chatBox {
+  background: #f1f3f6;
+  padding: 15px;
+  height: 300px;
   overflow-y: auto;
-  background-color: #36393f;
+  border-radius: 10px;
+  border: 1px solid #ddd;
 }
 
-.chat-box p {
-  margin-bottom: 8px;
+#chatBox p {
+  margin-bottom: 10px;
 }
 
-/* Chat input */
+/* --- Chat form --- */
 #chatForm {
   display: flex;
-  background-color: #40444b;
-  padding: 10px;
+  gap: 10px;
 }
 
-#chatInput {
+#chatForm input {
   flex: 1;
-  border-radius: 5px;
-  border: none;
-  padding: 10px;
-  margin-right: 5px;
-  background-color: #2f3136;
-  color: #dcddde;
 }
 
 #chatForm button {
-  width: auto;
-  padding: 0 20px;
-  background-color: #7289da;
+  flex-shrink: 0;
 }
 
-/* User list */
-.user-list {
+/* --- User list --- */
+#userList {
   list-style: none;
-  background-color: #202225;
+  background: #e9ecef;
   padding: 10px;
-  width: 150px;
-  border-left: 1px solid #40444b;
+  border-radius: 8px;
+  max-height: 200px;
   overflow-y: auto;
-  position: absolute;
-  right: 0;
-  top: 60px;
-  bottom: 0;
 }
 
-.user-list li {
+#userList li {
   padding: 5px 10px;
-  border-radius: 3px;
   margin-bottom: 5px;
-  background-color: #2f3136;
+  background: #d6d8db;
+  border-radius: 6px;
+  font-weight: bold;
 }
 
-.user-list li:hover {
-  background-color: #40444b;
+/* --- Admin Panel --- */
+.admin-container {
+  max-width: 900px;
 }
 
-/* Messages scrollbar */
-.chat-box::-webkit-scrollbar, .user-list::-webkit-scrollbar {
-  width: 8px;
-}
-
-.chat-box::-webkit-scrollbar-thumb, .user-list::-webkit-scrollbar-thumb {
-  background-color: #202225;
-  border-radius: 4px;
-}
-
-.chat-box::-webkit-scrollbar-track, .user-list::-webkit-scrollbar-track {
-  background-color: #36393f;
-}
-
-/* Auth messages */
-#authMessage, #regMessage {
-  margin-top: 5px;
-  font-size: 0.9em;
-}
-
-/* Responsive */
-@media(max-width: 768px) {
-  #chatContainer {
-    height: 500px;
-}
-
-  .user-list {
-    display: none;
-    .admin-container table {
+#messagesTable {
   width: 100%;
   border-collapse: collapse;
-  table-layout: fixed; /* allows width settings to work */
+  margin-top: 15px;
 }
 
-.admin-container th, .admin-container td {
-  padding: 10px;
+#messagesTable th,
+#messagesTable td {
   border: 1px solid #ccc;
+  padding: 8px 10px;
   text-align: left;
-  word-wrap: break-word;
+  font-size: 0.9rem;
 }
 
-.admin-container th:nth-child(1) { width: 20%; } /* Time */
-.admin-container th:nth-child(2) { width: 20%; } /* User */
-.admin-container th:nth-child(3) { width: 20%; } /* IP */
-.admin-container th:nth-child(4) { width: 40%; } /* Message */
+#messagesTable th {
+  background: #007bff;
+  color: #fff;
+}
 
+#messagesTable tbody tr:nth-child(even) {
+  background: #f1f3f6;
+}
+
+/* --- Responsive --- */
+@media (max-width: 768px){
+  .container, .admin-container {
+    max-width: 100%;
+  }
+
+  #chatBox {
+    height: 250px;
+  }
+
+  #messagesTable th, #messagesTable td {
+    font-size: 0.8rem;
+    padding: 6px 8px;
   }
 }
