@@ -14,7 +14,7 @@ if (!sessionData || !sessionData.username) {
   const username = sessionData.username;
   const socket = io({ auth: { username } });
 
-  // --- Display chat messages ---
+  // --- Display messages ---
   socket.on("chat", data => {
     const p = document.createElement("p");
     p.innerHTML = `<strong>${data.user}:</strong> ${data.message}`;
@@ -34,13 +34,14 @@ if (!sessionData || !sessionData.username) {
   // --- Display system messages ---
   socket.on("system", msg => {
     const p = document.createElement("p");
-    p.classList.add("system");
+    p.style.fontStyle = "italic";
+    p.style.color = "#999";
     p.textContent = msg;
     chatBox.appendChild(p);
     chatBox.scrollTop = chatBox.scrollHeight;
   });
 
-  // --- Update user list ---
+  // --- User list ---
   socket.on("userList", users => {
     userListEl.innerHTML = "";
     users.forEach(u => {
@@ -56,7 +57,7 @@ if (!sessionData || !sessionData.username) {
     alert(`⛔ ${info.reason}. You are muted until ${untilTime}.`);
   });
 
-  // --- Force tab close from admin ---
+  // --- Force tab close ---
   socket.on("forceClose", () => {
     alert("Admin closed your chat. Closing window...");
     window.close();
@@ -73,8 +74,7 @@ if (!sessionData || !sessionData.username) {
     const message = chatInput.value.trim();
     if (!message) return;
 
-    // Send message to server
-    socket.emit("chat", message);
+    socket.emit("chat", message); // Send to server
     chatInput.value = "";
   });
 }
