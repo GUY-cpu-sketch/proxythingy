@@ -5,71 +5,58 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin Panel</title>
 <link rel="stylesheet" href="/style.css">
-<style>
-table { width: 100%; border-collapse: collapse; }
-th, td { padding: 10px; border: 1px solid #ccc; text-align: left; }
-th { background: #333; color: #fff; }
-tbody tr:nth-child(even) { background: #f0f0f0; }
-</style>
 </head>
 <body>
 <div class="container admin-container">
   <h1>Admin Panel</h1>
+  <button id="refresh">Refresh Messages</button>
+  <button id="downloadDB">Download DB</button>
   <table id="messagesTable">
     <thead>
       <tr>
-        <th>Time</th>
-        <th>User</th>
-        <th>IP</th>
-        <th>Message</th>
+        <th style="width:150px;">Time</th>
+        <th style="width:150px;">User</th>
+        <th style="width:150px;">IP</th>
+        <th style="width:400px;">Message</th>
       </tr>
     </thead>
     <tbody></tbody>
   </table>
-
-  <div style="margin-top:20px;">
-    <h2>Database Storage</h2>
-    <p>Persistent DB path: <code>/opt/render/project/data/database.sqlite</code></p>
-    <button id="downloadDB">Download DB</button>
-  </div>
 </div>
-
 <script type="module">
-import { io } from "https://cdn.socket.io/4.7.2/socket.io.esm.min.js";
+  const tableBody = document.querySelector("#messagesTable tbody");
+  const refreshBtn = document.getElementById("refresh");
+  const downloadBtn = document.getElementById("downloadDB");
+  const user = prompt("Enter admin username:");
 
-const tableBody = document.querySelector("#messagesTable tbody");
-const downloadBtn = document.getElementById("downloadDB");
-const adminUser = prompt("Enter admin username:");
-if (!adminUser) { alert("Admin username required"); throw new Error("Admin username required"); }
+  async function loadMessages() {
+    tableBody.innerHTML = "";
+    const res = await fetch(`/admin/messages?user=${user}`);
+    const data = await res.json();
+    data.forEach(m => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${new Date(m.timestamp).toLocaleString()}</td>
+                      <td>${m.user}</td>
+                      <td>${m.ip}</td>
+                      <td>${m.message}</td>`;
+      tableBody.appendChild(tr);
+    });
+  }
 
-const socket = io({ auth: { username: adminUser } });
+  refreshBtn.addEventListener("click", loadMessages);
 
-function addMessageRow(m) {
-  const tr = document.createElement("tr");
-  tr.innerHTML = `
-    <td>${new Date(m.timestamp).toLocaleString()}</td>
-    <td>${m.user}</td>
-    <td>${m.ip}</td>
-    <td>${m.message}</td>
-  `;
-  tableBody.appendChild(tr);
-  tableBody.scrollTop = tableBody.scrollHeight;
-}
+  downloadBtn.addEventListener("click", () => {
+    window.location.href = `/admin/download-db?user=${user}`;
+  });
 
-// Initial load
-fetch(`/admin/messages?user=${adminUser}`)
-  .then(res => res.json())
-  .then(data => data.forEach(addMessageRow));
+  loadMessages();
 
-// Live updates
-socket.on("chat", addMessageRow);
-socket.on("whisper", ({ from, message }) => addMessageRow({ user: `(Whisper) ${from}`, message, ip: "-", timestamp: Date.now() }));
-socket.on("system", msg => addMessageRow({ user: "SYSTEM", message: msg, ip: "-", timestamp: Date.now() }));
-
-// DB download button
-downloadBtn.addEventListener("click", () => {
-  window.location.href = `/admin/download-db?user=${adminUser}`;
-});
+  // --- Live updates via socket.io ---
+  import { io } from "https://cdn.socket.io/4.7.2/socket.io.esm.min.js";
+  const socket = io({ auth: { username: user } });
+  socket.on("chat", () => loadMessages());
+  socket.on("whisper", () => loadMessages());
+  socket.on("system", () => loadMessages());
 </script>
 </body>
 </html>
