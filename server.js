@@ -30,7 +30,7 @@ let db;
   )`);
 })();
 
-// --- Admin & chat data ---
+// --- Chat & admin data ---
 const admins = ["DEV"];
 let messages = [];
 let mutedUsers = {}; // username -> timestamp
