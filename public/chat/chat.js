@@ -1,71 +1,50 @@
-import { io } from "https://cdn.socket.io/4.7.2/socket.io.esm.min.js";
+const username = localStorage.getItem("username");
+if (!username) {
+  window.location.href = "login.html";
+}
 
-const chatBox = document.getElementById("chatBox");
+const socket = io({ auth: { username } });
+
 const chatForm = document.getElementById("chatForm");
 const chatInput = document.getElementById("chatInput");
-const userListEl = document.getElementById("userList");
+const chatBox = document.getElementById("chatBox");
+const userList = document.getElementById("userList");
 
-// --- Load session ---
-let sessionData = JSON.parse(localStorage.getItem("sessionData"));
-if (!sessionData || !sessionData.username) {
-  alert("Please login first.");
-  window.location.href = "/login.html";
-} else {
-  const username = sessionData.username;
-
-  // Connect to the correct server origin
-  const socket = io(window.location.origin, { auth: { username } });
-
-  // --- Display chat messages ---
-  socket.on("chat", data => {
-    const p = document.createElement("p");
-    p.innerHTML = `<strong>${data.user}:</strong> ${data.message}`;
-    chatBox.appendChild(p);
-    chatBox.scrollTop = chatBox.scrollHeight;
-  });
-
-  // --- Display whispers ---
-  socket.on("whisper", ({ from, message }) => {
-    const p = document.createElement("p");
-    p.style.color = "purple";
-    p.innerHTML = `<em>(Whisper) ${from}:</em> ${message}`;
-    chatBox.appendChild(p);
-    chatBox.scrollTop = chatBox.scrollHeight;
-  });
-
-  // --- Display system messages ---
-  socket.on("system", msg => {
-    const p = document.createElement("p");
-    p.style.fontStyle = "italic";
-    p.style.color = "#999";
-    p.textContent = msg;
-    chatBox.appendChild(p);
-    chatBox.scrollTop = chatBox.scrollHeight;
-  });
-
-  // --- User list ---
-  socket.on("userList", users => {
-    userListEl.innerHTML = "";
-    users.forEach(u => {
-      const li = document.createElement("li");
-      li.textContent = u;
-      userListEl.appendChild(li);
-    });
-  });
-
-  // --- Muted warning ---
-  socket.on("muted", info => {
-    const untilTime = new Date(info.until).toLocaleTimeString();
-    alert(`⛔ ${info.reason}. You are muted until ${untilTime}.`);
-  });
-
-  // --- Send chat message ---
-  chatForm.addEventListener("submit", e => {
-    e.preventDefault();
-    const message = chatInput.value.trim();
-    if (!message) return;
-
-    socket.emit("chat", message);
-    chatInput.value = "";
-  });
+function appendMessage(text, type = "chat") {
+  const p = document.createElement("p");
+  if (type === "system") p.style.color = "red";
+  if (type === "whisper") p.style.color = "purple";
+  p.textContent = text;
+  chatBox.appendChild(p);
+  chatBox.scrollTop = chatBox.scrollHeight;
 }
+
+chatForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  if (chatInput.value.trim() !== "") {
+    socket.emit("chat", chatInput.value);
+    chatInput.value = "";
+  }
+});
+
+socket.on("chat", (data) => appendMessage(`${data.user}: ${data.message}`));
+socket.on("system", (msg) => appendMessage(msg, "system"));
+socket.on("whisper", (data) => appendMessage(`(whisper) ${data.from}: ${data.message}`, "whisper"));
+
+socket.on("userList", (users) => {
+  userList.innerHTML = "";
+  users.forEach(u => {
+    const li = document.createElement("li");
+    li.textContent = u;
+    userList.appendChild(li);
+  });
+});
+
+socket.on("muted", (data) => {
+  appendMessage(`You are muted until ${new Date(data.until).toLocaleTimeString()}: ${data.reason}`, "system");
+});
+
+socket.on("closeTab", () => {
+  alert("An admin has closed your session.");
+  window.close();
+});
