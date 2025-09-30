@@ -9,10 +9,9 @@ if (!sessionData || !sessionData.username) {
   const username = sessionData.username;
   const socket = io({ auth: { username } });
 
-  // --- Only create container if it doesn't exist ---
-  let container = document.querySelector(".chat-container");
-  if (!container) {
-    container = document.createElement("div");
+  // --- Create chat interface only once ---
+  if (!document.querySelector(".chat-container")) {
+    const container = document.createElement("div");
     container.classList.add("container", "chat-container");
 
     // Title
@@ -59,29 +58,27 @@ if (!sessionData || !sessionData.username) {
   const chatInput = document.getElementById("chatInput");
   const userListEl = document.getElementById("userList");
 
-  // --- Socket events ---
-  socket.on("chat", data => {
+  // --- Helper to append message ---
+  const appendMessage = (text, color, italic = false) => {
     const p = document.createElement("p");
-    p.innerHTML = `<strong>${data.user}:</strong> ${data.message}`;
+    p.innerHTML = text;
+    if (color) p.style.color = color;
+    if (italic) p.style.fontStyle = "italic";
     chatBox.appendChild(p);
     chatBox.scrollTop = chatBox.scrollHeight;
+  };
+
+  // --- Socket events ---
+  socket.on("chat", data => {
+    appendMessage(`<strong>${data.user}:</strong> ${data.message}`);
   });
 
   socket.on("whisper", ({ from, message }) => {
-    const p = document.createElement("p");
-    p.style.color = "#ffb86c"; // easier to see
-    p.innerHTML = `<em>(Whisper) ${from}:</em> ${message}`;
-    chatBox.appendChild(p);
-    chatBox.scrollTop = chatBox.scrollHeight;
+    appendMessage(`<em>(Whisper) ${from}:</em> ${message}`, "#ffb86c");
   });
 
   socket.on("system", msg => {
-    const p = document.createElement("p");
-    p.style.fontStyle = "italic";
-    p.style.color = "#999";
-    p.textContent = msg;
-    chatBox.appendChild(p);
-    chatBox.scrollTop = chatBox.scrollHeight;
+    appendMessage(msg, "#999", true);
   });
 
   socket.on("userList", users => {
@@ -112,6 +109,8 @@ if (!sessionData || !sessionData.username) {
     e.preventDefault();
     const message = chatInput.value.trim();
     if (!message) return;
+
+    // Send message to server
     socket.emit("chat", message);
     chatInput.value = "";
   });
