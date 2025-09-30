@@ -1,4 +1,4 @@
-/* --- General reset & body --- */
+/* -------------------- General Reset & Body -------------------- */
 * {
   margin: 0;
   padding: 0;
@@ -7,8 +7,8 @@
 }
 
 body {
-  background: #f4f7f8;
-  color: #333;
+  background: #1e1e2f; /* dark background for site */
+  color: #eee;
   min-height: 100vh;
   display: flex;
   justify-content: center;
@@ -16,29 +16,29 @@ body {
   padding: 20px;
 }
 
-/* --- Container --- */
-.container {
-  background: #fff;
+/* -------------------- Containers -------------------- */
+.container, .admin-container {
+  background: #2e2e44; /* card background */
   padding: 25px 30px;
   border-radius: 12px;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
-  max-width: 600px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+  max-width: 900px;
   width: 100%;
 }
 
-/* --- Headings --- */
+/* -------------------- Headings -------------------- */
 h1 {
   font-size: 2rem;
   margin-bottom: 20px;
   text-align: center;
-  color: #222;
+  color: #fff;
 }
 
-/* --- Buttons --- */
+/* -------------------- Buttons -------------------- */
 button, .btn {
   padding: 10px 20px;
   border: none;
-  background: #007bff;
+  background: #6272a4;
   color: #fff;
   font-weight: bold;
   border-radius: 8px;
@@ -50,45 +50,51 @@ button, .btn {
 }
 
 button:hover, .btn:hover {
-  background: #0056b3;
+  background: #44475a;
 }
 
-/* --- Forms --- */
+/* -------------------- Forms -------------------- */
 input[type="text"],
 input[type="password"] {
   width: 100%;
   padding: 10px 15px;
   margin-bottom: 15px;
   border-radius: 8px;
-  border: 1px solid #ccc;
+  border: 1px solid #555;
   font-size: 1rem;
+  background: #1e1e2f;
+  color: #eee;
 }
 
-form button {
-  width: 100%;
-}
-
-/* --- Chat Container --- */
-.chat-container {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
+/* -------------------- Chat Container -------------------- */
 #chatBox {
-  background: #f1f3f6;
+  background: #1b1b2f;
+  color: #eee;
   padding: 15px;
   height: 300px;
   overflow-y: auto;
   border-radius: 10px;
-  border: 1px solid #ddd;
+  border: 1px solid #444;
+  font-size: 0.95rem;
 }
 
 #chatBox p {
   margin-bottom: 10px;
 }
 
-/* --- Chat form --- */
+/* Whispers (private messages) */
+#chatBox p em {
+  color: #ffb86c; /* orange-ish for whispers */
+  font-style: italic;
+}
+
+/* System messages */
+#chatBox p.system {
+  color: #50fa7b; /* green for system messages */
+  font-style: italic;
+}
+
+/* -------------------- Chat Form -------------------- */
 #chatForm {
   display: flex;
   gap: 10px;
@@ -96,16 +102,32 @@ form button {
 
 #chatForm input {
   flex: 1;
+  border-radius: 8px;
+  border: 1px solid #555;
+  padding: 10px 15px;
+  background: #2e2e44;
+  color: #eee;
 }
 
 #chatForm button {
   flex-shrink: 0;
+  background: #6272a4;
+  color: #fff;
+  font-weight: bold;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.3s;
 }
 
-/* --- User list --- */
+#chatForm button:hover {
+  background: #44475a;
+}
+
+/* -------------------- User List -------------------- */
 #userList {
   list-style: none;
-  background: #e9ecef;
+  background: #2e2e44;
   padding: 10px;
   border-radius: 8px;
   max-height: 200px;
@@ -115,16 +137,13 @@ form button {
 #userList li {
   padding: 5px 10px;
   margin-bottom: 5px;
-  background: #d6d8db;
+  background: #44475a;
   border-radius: 6px;
   font-weight: bold;
+  color: #eee;
 }
 
-/* --- Admin Panel --- */
-.admin-container {
-  max-width: 900px;
-}
-
+/* -------------------- Admin Panel -------------------- */
 #messagesTable {
   width: 100%;
   border-collapse: collapse;
@@ -133,22 +152,27 @@ form button {
 
 #messagesTable th,
 #messagesTable td {
-  border: 1px solid #ccc;
-  padding: 8px 10px;
+  border: 1px solid #555;
+  padding: 10px 15px;
   text-align: left;
   font-size: 0.9rem;
+  color: #eee;
 }
 
 #messagesTable th {
-  background: #007bff;
+  background: #6272a4;
   color: #fff;
 }
 
 #messagesTable tbody tr:nth-child(even) {
-  background: #f1f3f6;
+  background: #2e2e44;
 }
 
-/* --- Responsive --- */
+#messagesTable tbody tr:nth-child(odd) {
+  background: #1b1b2f;
+}
+
+/* -------------------- Responsive -------------------- */
 @media (max-width: 768px){
   .container, .admin-container {
     max-width: 100%;
