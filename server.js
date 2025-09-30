@@ -5,6 +5,7 @@ import sqlite3 from "sqlite3";
 import { open } from "sqlite";
 import path from "path";
 import { fileURLToPath } from "url";
+import fs from "fs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -16,15 +17,24 @@ const io = new Server(server);
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
+// --- Ensure data folder exists ---
+const dataDir = path.join(__dirname, "data");
+if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir);
+
 // --- Database setup ---
 let db;
 (async () => {
-  db = await open({ filename: path.join(__dirname, "data/database.sqlite"), driver: sqlite3.Database });
+  db = await open({
+    filename: path.join(dataDir, "database.sqlite"),
+    driver: sqlite3.Database
+  });
+
   await db.run(`CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT UNIQUE,
     password TEXT
   )`);
+
   await db.run(`CREATE TABLE IF NOT EXISTS messages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT,
@@ -45,6 +55,7 @@ app.get("/admin.html", (req, res) => res.sendFile(path.join(__dirname, "public/a
 app.post("/login", async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) return res.json({ success: false, message: "Fill in all fields" });
+
   const user = await db.get("SELECT * FROM users WHERE username=? AND password=?", username, password);
   res.json({ success: !!user, username });
 });
