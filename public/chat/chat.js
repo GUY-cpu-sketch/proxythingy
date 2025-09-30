@@ -14,10 +14,7 @@ if (!sessionData || !sessionData.username) {
   const username = sessionData.username;
   const socket = io({ auth: { username } });
 
-  // Register for initial messages
-  socket.emit("registerChatClient");
-
-  // --- Normal chat messages ---
+  // --- Chat messages ---
   socket.on("chat", data => {
     const p = document.createElement("p");
     p.innerHTML = `<strong>${data.user}:</strong> ${data.message}`;
@@ -25,10 +22,10 @@ if (!sessionData || !sessionData.username) {
     chatBox.scrollTop = chatBox.scrollHeight;
   });
 
-  // --- Whispers (private messages) ---
+  // --- Whispers ---
   socket.on("whisper", ({ from, message }) => {
     const p = document.createElement("p");
-    p.style.color = "#ffb86c"; // orange-ish for whispers
+    p.style.color = "#ffb86c";
     p.innerHTML = `<em>(Whisper) ${from}:</em> ${message}`;
     chatBox.appendChild(p);
     chatBox.scrollTop = chatBox.scrollHeight;
@@ -37,7 +34,7 @@ if (!sessionData || !sessionData.username) {
   // --- System messages ---
   socket.on("system", msg => {
     const p = document.createElement("p");
-    p.classList.add("system"); // green italic system message
+    p.classList.add("system");
     p.textContent = msg;
     chatBox.appendChild(p);
     chatBox.scrollTop = chatBox.scrollHeight;
@@ -70,13 +67,13 @@ if (!sessionData || !sessionData.username) {
     chatBox.innerHTML = "";
   });
 
-  // --- Sending chat messages ---
+  // --- Send chat message ---
   chatForm.addEventListener("submit", e => {
     e.preventDefault();
     const message = chatInput.value.trim();
     if (!message) return;
 
-    // All messages (normal, whispers, admin commands) go through chat event
+    // Send everything to server
     socket.emit("chat", message);
     chatInput.value = "";
   });
