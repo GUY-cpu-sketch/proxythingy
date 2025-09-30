@@ -1,0 +1,32 @@
+name: Auto Update Files
+
+on:
+  workflow_dispatch: # allows you to trigger manually from GitHub
+
+jobs:
+  update-files:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: Copy updated files
+        run: |
+          mkdir -p temp-update
+          echo "$UPDATED_FILES_JSON" > temp-update/updates.json
+          node scripts/applyUpdates.js
+
+      - name: Commit & push changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add .
+          git commit -m "Automated file updates" || echo "No changes"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
