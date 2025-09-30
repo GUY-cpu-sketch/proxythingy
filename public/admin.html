@@ -44,14 +44,12 @@
   }
 
   refreshBtn.addEventListener("click", loadMessages);
-
   downloadBtn.addEventListener("click", () => {
     window.location.href = `/admin/download-db?user=${user}`;
   });
 
   loadMessages();
 
-  // --- Live updates via socket.io ---
   import { io } from "https://cdn.socket.io/4.7.2/socket.io.esm.min.js";
   const socket = io({ auth: { username: user } });
   socket.on("chat", () => loadMessages());
