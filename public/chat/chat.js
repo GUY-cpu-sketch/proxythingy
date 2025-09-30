@@ -1,50 +1,50 @@
-const username = localStorage.getItem("username");
-if (!username) {
-  window.location.href = "login.html";
+const socket = io();
+const chatForm = document.createElement("form");
+chatForm.id = "chatForm";
+
+const chatBox = document.createElement("div");
+chatBox.id = "chatBox";
+chatBox.style.height = "400px";
+chatBox.style.overflowY = "auto";
+chatBox.style.border = "1px solid #ccc";
+chatBox.style.padding = "10px";
+document.body.appendChild(chatBox);
+
+const input = document.createElement("input");
+input.type = "text";
+input.id = "chatInput";
+input.placeholder = "Type a message...";
+chatForm.appendChild(input);
+
+const sendBtn = document.createElement("button");
+sendBtn.textContent = "Send";
+chatForm.appendChild(sendBtn);
+
+document.body.appendChild(chatForm);
+
+// Grab username from cookie
+function getCookie(name) {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(";").shift();
 }
 
-const socket = io({ auth: { username } });
+const username = getCookie("username") || "Anon";
+socket.emit("setUser", username);
 
-const chatForm = document.getElementById("chatForm");
-const chatInput = document.getElementById("chatInput");
-const chatBox = document.getElementById("chatBox");
-const userList = document.getElementById("userList");
-
-function appendMessage(text, type = "chat") {
+// Receive chat
+socket.on("chat", (data) => {
   const p = document.createElement("p");
-  if (type === "system") p.style.color = "red";
-  if (type === "whisper") p.style.color = "purple";
-  p.textContent = text;
+  p.textContent = `${data.user}: ${data.message}`;
   chatBox.appendChild(p);
   chatBox.scrollTop = chatBox.scrollHeight;
-}
+});
 
+// Send chat
 chatForm.addEventListener("submit", (e) => {
   e.preventDefault();
-  if (chatInput.value.trim() !== "") {
-    socket.emit("chat", chatInput.value);
-    chatInput.value = "";
-  }
-});
-
-socket.on("chat", (data) => appendMessage(`${data.user}: ${data.message}`));
-socket.on("system", (msg) => appendMessage(msg, "system"));
-socket.on("whisper", (data) => appendMessage(`(whisper) ${data.from}: ${data.message}`, "whisper"));
-
-socket.on("userList", (users) => {
-  userList.innerHTML = "";
-  users.forEach(u => {
-    const li = document.createElement("li");
-    li.textContent = u;
-    userList.appendChild(li);
-  });
-});
-
-socket.on("muted", (data) => {
-  appendMessage(`You are muted until ${new Date(data.until).toLocaleTimeString()}: ${data.reason}`, "system");
-});
-
-socket.on("closeTab", () => {
-  alert("An admin has closed your session.");
-  window.close();
+  const msg = input.value.trim();
+  if (!msg) return;
+  socket.emit("chat", msg);
+  input.value = "";
 });
