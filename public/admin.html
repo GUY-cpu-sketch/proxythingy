@@ -10,12 +10,13 @@
 <div class="container admin-container">
   <h1>Admin Panel</h1>
   <button id="refresh">Refresh Messages</button>
+  <button id="download">Download CSV</button>
   <table id="messagesTable">
     <thead>
       <tr>
-        <th>Time</th>
-        <th>User</th>
-        <th>IP</th>
+        <th style="width:150px">Time</th>
+        <th style="width:150px">User</th>
+        <th style="width:150px">IP</th>
         <th>Message</th>
       </tr>
     </thead>
@@ -23,26 +24,44 @@
   </table>
 </div>
 <script type="module">
-const tableBody = document.querySelector("#messagesTable tbody");
-const refreshBtn = document.getElementById("refresh");
-const user = prompt("Enter admin username:");
+  const tableBody = document.querySelector("#messagesTable tbody");
+  const refreshBtn = document.getElementById("refresh");
+  const downloadBtn = document.getElementById("download");
+  const user = prompt("Enter admin username:"); // only DEV can view
 
-async function loadMessages() {
-  tableBody.innerHTML = "";
-  const res = await fetch(`/admin/messages?user=${user}`);
-  const data = await res.json();
-  data.forEach(m => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${new Date(m.timestamp).toLocaleString()}</td>
-                    <td>${m.username}</td>
-                    <td>${m.ip}</td>
-                    <td>${m.message}</td>`;
-    tableBody.appendChild(tr);
-  });
-}
+  async function loadMessages() {
+    tableBody.innerHTML = "";
+    const res = await fetch(`/admin/messages?user=${user}`);
+    const data = await res.json();
+    data.forEach(m => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${new Date(m.timestamp).toLocaleString()}</td>
+                      <td>${m.username}</td>
+                      <td>${m.ip}</td>
+                      <td>${m.message}</td>`;
+      tableBody.appendChild(tr);
+    });
+  }
 
-refreshBtn.addEventListener("click", loadMessages);
-loadMessages();
+  function downloadCSV() {
+    const rows = [["Time","User","IP","Message"]];
+    tableBody.querySelectorAll("tr").forEach(tr => {
+      const cells = Array.from(tr.querySelectorAll("td")).map(td => `"${td.textContent.replace(/"/g,'""')}"`);
+      rows.push(cells);
+    });
+    const csv = rows.map(r => r.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "chat_messages.csv";
+    a.click();
+  }
+
+  refreshBtn.addEventListener("click", loadMessages);
+  downloadBtn.addEventListener("click", downloadCSV);
+
+  loadMessages();
+  setInterval(loadMessages, 1000); // auto-refresh every 5s
 </script>
 </body>
 </html>
