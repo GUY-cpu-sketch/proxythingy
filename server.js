@@ -16,17 +16,18 @@ const io = new Server(server);
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
+const dbPath = path.join("/opt/render/project/data", "database.sqlite");
 let db;
+const admins = ["DEV"];
 let messages = [];
 let mutedUsers = {};
 let lastWhisperFrom = {};
-const admins = ["DEV"];
 const onlineUsers = new Set();
 const users = {}; // username -> socket
 
 // --- Initialize SQLite ---
 (async () => {
-  db = await open({ filename: "database.sqlite", driver: sqlite3.Database });
+  db = await open({ filename: dbPath, driver: sqlite3.Database });
   await db.run(`CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT UNIQUE,
@@ -63,6 +64,13 @@ app.post("/login", async (req, res) => {
   res.json({ success: true, username });
 });
 
+// --- Admin DB download ---
+app.get("/admin/download-db", (req, res) => {
+  const user = req.query.user;
+  if (!admins.includes(user)) return res.status(403).send("Forbidden");
+  res.download(dbPath, "database.sqlite");
+});
+
 // --- Admin messages endpoint ---
 app.get("/admin/messages", (req, res) => {
   const { user } = req.query;
@@ -85,30 +93,27 @@ io.on("connection", (socket) => {
   users[username] = socket;
   onlineUsers.add(username);
 
-  // System join message
   io.emit("system", `${username} joined the chat`);
   io.emit("userList", Array.from(onlineUsers));
 
-  // Register chat client to send past messages
   socket.on("registerChatClient", () => {
     messages.forEach(msg => socket.emit("chat", msg));
   });
 
-  // --- Handle chat ---
+  // --- Chat handler ---
   socket.on("chat", (msg) => {
     if (!msg) return;
 
-    // Check mute
+    // Mute check
     if (mutedUsers[username] && Date.now() < mutedUsers[username]) {
       socket.emit("muted", { until: mutedUsers[username], reason: "You have been muted by an admin" });
       return;
     }
 
-    // --- Admin commands ---
+    // Admin commands
     if (admins.includes(username) && msg.startsWith("/")) {
       const parts = msg.split(" ");
       const command = parts[0].toLowerCase();
-
       switch (command) {
         case "/kick": {
           const target = parts[1];
@@ -119,7 +124,7 @@ io.on("connection", (socket) => {
         }
         case "/clear": {
           messages = [];
-          io.emit("clearChat"); // Only chat.html listens
+          io.emit("clearChat");
           io.emit("system", "DEV cleared the chat");
           return;
         }
@@ -151,14 +156,8 @@ io.on("connection", (socket) => {
       const target = parts[1];
       const messageText = parts.slice(2).join(" ");
       const targetSocket = users[target];
-
       if (targetSocket) {
-        const messageObj = {
-          user: `(Whisper) ${username} → ${target}`,
-          message: messageText,
-          timestamp: Date.now(),
-          ip
-        };
+        const messageObj = { user: `(Whisper) ${username} → ${target}`, message: messageText, timestamp: Date.now(), ip };
         messages.push(messageObj);
         socket.emit("whisper", { from: username, message: messageText });
         targetSocket.emit("whisper", { from: username, message: messageText });
@@ -177,12 +176,7 @@ io.on("connection", (socket) => {
       if (!replyTo) { socket.emit("system", "No one to reply to."); return; }
       const targetSocket = users[replyTo];
       if (targetSocket) {
-        const messageObj = {
-          user: `(Whisper) ${username} → ${replyTo}`,
-          message: replyMsg,
-          timestamp: Date.now(),
-          ip
-        };
+        const messageObj = { user: `(Whisper) ${username} → ${replyTo}`, message: replyMsg, timestamp: Date.now(), ip };
         messages.push(messageObj);
         targetSocket.emit("whisper", { from: username, message: replyMsg });
         socket.emit("whisper", { from: username, message: replyMsg });
