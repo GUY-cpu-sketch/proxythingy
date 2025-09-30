@@ -9,23 +9,27 @@ if (!sessionData || !sessionData.username) {
   const username = sessionData.username;
   const socket = io({ auth: { username } });
 
-  // --- Check if container already exists ---
+  // --- Only create container if it doesn't exist ---
   let container = document.querySelector(".chat-container");
   if (!container) {
     container = document.createElement("div");
     container.classList.add("container", "chat-container");
 
+    // Title
     const title = document.createElement("h1");
     title.textContent = "Chat Room";
 
+    // Chat box
     const chatBox = document.createElement("div");
     chatBox.id = "chatBox";
     chatBox.classList.add("chat-box");
 
+    // User list
     const userListEl = document.createElement("ul");
     userListEl.id = "userList";
     userListEl.classList.add("user-list");
 
+    // Form
     const chatForm = document.createElement("form");
     chatForm.id = "chatForm";
 
@@ -65,7 +69,7 @@ if (!sessionData || !sessionData.username) {
 
   socket.on("whisper", ({ from, message }) => {
     const p = document.createElement("p");
-    p.style.color = "#ffb86c";
+    p.style.color = "#ffb86c"; // easier to see
     p.innerHTML = `<em>(Whisper) ${from}:</em> ${message}`;
     chatBox.appendChild(p);
     chatBox.scrollTop = chatBox.scrollHeight;
