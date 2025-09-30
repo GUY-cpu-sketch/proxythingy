@@ -1,272 +1,93 @@
-/* -------------------- General Reset & Body -------------------- */
-* {
+body {
+  font-family: Arial, sans-serif;
+  background-color: #121212;
+  color: #eee;
   margin: 0;
   padding: 0;
-  box-sizing: border-box;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-body {
-  background: #1e1e2f; /* dark background for site */
-  color: #eee;
-  min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  padding: 20px;
-}
-
-/* -------------------- Containers -------------------- */
-.container, .admin-container {
-  background: #2e2e44; /* card background */
-  padding: 25px 30px;
-  border-radius: 12px;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+.container {
   max-width: 900px;
-  width: 100%;
-}
-
-/* -------------------- Headings -------------------- */
-h1 {
-  font-size: 2rem;
-  margin-bottom: 20px;
-  text-align: center;
-  color: #fff;
-}
-
-/* -------------------- Buttons -------------------- */
-button, .btn {
-  padding: 10px 20px;
-  border: none;
-  background: #6272a4;
-  color: #fff;
-  font-weight: bold;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background 0.3s;
-  text-decoration: none;
-  display: inline-block;
-  text-align: center;
-}
-
-button:hover, .btn:hover {
-  background: #44475a;
-}
-
-/* -------------------- Forms -------------------- */
-input[type="text"],
-input[type="password"] {
-  width: 100%;
-  padding: 10px 15px;
-  margin-bottom: 15px;
-  border-radius: 8px;
-  border: 1px solid #555;
-  font-size: 1rem;
-  background: #1e1e2f;
-  color: #eee;
-}
-
-/* -------------------- Chat Container -------------------- */
-#chatBox {
-  background: #1b1b2f;
-  color: #eee;
-  padding: 15px;
-  height: 300px;
-  overflow-y: auto;
+  margin: 30px auto;
+  padding: 20px;
+  background: #1e1e1e;
   border-radius: 10px;
-  border: 1px solid #444;
-  font-size: 0.95rem;
 }
 
-#chatBox p {
+.chat-container h1,
+.admin-container h1 {
+  text-align: center;
+}
+
+.chat-box {
+  background: #222;
+  border-radius: 5px;
+  height: 300px;
+  overflow-y: scroll;
+  padding: 10px;
   margin-bottom: 10px;
 }
 
-/* Whispers (private messages) */
-#chatBox p em {
-  color: #ffb86c; /* orange-ish for whispers */
-  font-style: italic;
+.chat-box p {
+  margin: 5px 0;
 }
 
-/* System messages */
-#chatBox p.system {
-  color: #50fa7b; /* green for system messages */
-  font-style: italic;
-}
-
-/* -------------------- Chat Form -------------------- */
-#chatForm {
+form {
   display: flex;
   gap: 10px;
 }
 
-#chatForm input {
+form input {
   flex: 1;
-  border-radius: 8px;
-  border: 1px solid #555;
-  padding: 10px 15px;
-  background: #2e2e44;
-  color: #eee;
-}
-
-#chatForm button {
-  flex-shrink: 0;
-  background: #6272a4;
-  color: #fff;
-  font-weight: bold;
-  border-radius: 8px;
-  border: none;
-  cursor: pointer;
-  transition: background 0.3s;
-}
-
-#chatForm button:hover {
-  background: #44475a;
-}/* --- Landing Container --- */
-.landing-container {
-  max-width: 900px;
-  margin: 40px auto;
-  padding: 30px;
-  background: #1e1e2f;
-  border-radius: 15px;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.5);
-  color: #eee;
-  font-family: 'Arial', sans-serif;
-  text-align: center;
-}
-
-/* --- Headings --- */
-.landing-container h1 {
-  font-size: 2.5em;
-  color: #50fa7b;
-  margin-bottom: 15px;
-}
-
-.landing-container p {
-  font-size: 1.1em;
-  margin-bottom: 20px;
-  line-height: 1.6;
-}
-
-/* --- Rules Box --- */
-.rules {
-  background: #2e2e44;
-  padding: 20px 25px;
-  border-radius: 12px;
-  margin: 25px 0;
-  border: 1px solid #444;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-  text-align: left;
-}
-
-.rules h2 {
-  color: #50fa7b;
-  margin-bottom: 12px;
-}
-
-.rules ul {
-  list-style: disc inside;
-  padding-left: 0;
-}
-
-.rules ul li {
-  margin-bottom: 10px;
-  color: #eee;
-  line-height: 1.5;
-}
-
-/* --- Landing Buttons --- */
-.landing-buttons {
-  margin-top: 20px;
-}
-
-.btn {
-  display: inline-block;
-  background-color: #50fa7b;
-  color: #1e1e2f;
-  font-weight: bold;
-  text-decoration: none;
-  padding: 12px 25px;
-  border-radius: 10px;
-  margin: 10px;
-  transition: all 0.25s ease;
-}
-
-.btn:hover {
-  background-color: #40d36a;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(0,0,0,0.3);
-}
-
-/* --- Welcome Image --- */
-.welcome-image img {
-  max-width: 100%;
-  border-radius: 12px;
-  margin-top: 20px;
-  box-shadow: 0 6px 15px rgba(0,0,0,0.5);
-}
-
-
-/* -------------------- User List -------------------- */
-#userList {
-  list-style: none;
-  background: #2e2e44;
   padding: 10px;
-  border-radius: 8px;
-  max-height: 200px;
-  overflow-y: auto;
+  border-radius: 5px;
+  border: none;
+  outline: none;
 }
 
-#userList li {
-  padding: 5px 10px;
-  margin-bottom: 5px;
-  background: #44475a;
-  border-radius: 6px;
-  font-weight: bold;
-  color: #eee;
+form button {
+  padding: 10px 20px;
+  border-radius: 5px;
+  border: none;
+  background-color: #0a84ff;
+  color: #fff;
+  cursor: pointer;
 }
 
-/* -------------------- Admin Panel -------------------- */
-#messagesTable {
-  width: 100%;
-  border-collapse: collapse;
+form button:hover {
+  background-color: #0066cc;
+}
+
+.users {
   margin-top: 15px;
 }
 
-#messagesTable th,
-#messagesTable td {
-  border: 1px solid #555;
-  padding: 10px 15px;
+.users h3 {
+  margin-bottom: 5px;
+}
+
+.users ul {
+  list-style: none;
+  padding: 0;
+}
+
+.users li {
+  padding: 3px 0;
+}
+
+/* Admin table */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+th, td {
+  border: 1px solid #444;
+  padding: 6px 10px;
   text-align: left;
-  font-size: 0.9rem;
-  color: #eee;
 }
 
-#messagesTable th {
-  background: #6272a4;
-  color: #fff;
-}
-
-#messagesTable tbody tr:nth-child(even) {
-  background: #2e2e44;
-}
-
-#messagesTable tbody tr:nth-child(odd) {
-  background: #1b1b2f;
-}
-
-/* -------------------- Responsive -------------------- */
-@media (max-width: 768px){
-  .container, .admin-container {
-    max-width: 100%;
-  }
-
-  #chatBox {
-    height: 250px;
-  }
-
-  #messagesTable th, #messagesTable td {
-    font-size: 0.8rem;
-    padding: 6px 8px;
-  }
+th {
+  background: #333;
 }
