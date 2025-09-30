@@ -1,117 +1,151 @@
-import { io } from "https://cdn.socket.io/4.7.2/socket.io.esm.min.js";
+import express from "express";
+import http from "http";
+import { Server } from "socket.io";
+import sqlite3 from "sqlite3";
+import { open } from "sqlite";
+import path from "path";
+import { fileURLToPath } from "url";
 
-// --- Load session ---
-const sessionData = JSON.parse(localStorage.getItem("sessionData"));
-if (!sessionData || !sessionData.username) {
-  alert("Please login first.");
-  window.location.href = "/login.html";
-} else {
-  const username = sessionData.username;
-  const socket = io({ auth: { username } });
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-  // --- Create chat interface only once ---
-  if (!document.querySelector(".chat-container")) {
-    const container = document.createElement("div");
-    container.classList.add("container", "chat-container");
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server);
 
-    // Title
-    const title = document.createElement("h1");
-    title.textContent = "Chat Room";
+app.use(express.json());
+app.use(express.static(path.join(__dirname, "public")));
 
-    // Chat box
-    const chatBox = document.createElement("div");
-    chatBox.id = "chatBox";
-    chatBox.classList.add("chat-box");
+// --- Database setup ---
+let db;
+(async () => {
+  db = await open({ filename: path.join(__dirname, "data/database.sqlite"), driver: sqlite3.Database });
+  await db.run(`CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE,
+    password TEXT
+  )`);
+  await db.run(`CREATE TABLE IF NOT EXISTS messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT,
+    ip TEXT,
+    message TEXT,
+    timestamp INTEGER
+  )`);
+})();
 
-    // User list
-    const userListEl = document.createElement("ul");
-    userListEl.id = "userList";
-    userListEl.classList.add("user-list");
+// --- Routes ---
+app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public/index.html")));
+app.get("/login.html", (req, res) => res.sendFile(path.join(__dirname, "public/login.html")));
+app.get("/register.html", (req, res) => res.sendFile(path.join(__dirname, "public/register.html")));
+app.get("/chat.html", (req, res) => res.sendFile(path.join(__dirname, "public/chat.html")));
+app.get("/admin.html", (req, res) => res.sendFile(path.join(__dirname, "public/admin.html")));
 
-    // Form
-    const chatForm = document.createElement("form");
-    chatForm.id = "chatForm";
+// --- Auth endpoints ---
+app.post("/login", async (req, res) => {
+  const { username, password } = req.body;
+  if (!username || !password) return res.json({ success: false, message: "Fill in all fields" });
+  const user = await db.get("SELECT * FROM users WHERE username=? AND password=?", username, password);
+  res.json({ success: !!user, username });
+});
 
-    const chatInput = document.createElement("input");
-    chatInput.type = "text";
-    chatInput.id = "chatInput";
-    chatInput.placeholder = "Type a message...";
-    chatInput.autocomplete = "off";
-
-    const sendButton = document.createElement("button");
-    sendButton.type = "submit";
-    sendButton.textContent = "Send";
-
-    chatForm.appendChild(chatInput);
-    chatForm.appendChild(sendButton);
-
-    container.appendChild(title);
-    container.appendChild(chatBox);
-    container.appendChild(userListEl);
-    container.appendChild(chatForm);
-
-    document.body.appendChild(container);
+app.post("/register", async (req, res) => {
+  const { username, password } = req.body;
+  if (!username || !password) return res.json({ success: false, message: "Fill in all fields" });
+  try {
+    await db.run("INSERT INTO users (username, password) VALUES (?, ?)", username, password);
+    res.json({ success: true });
+  } catch {
+    res.json({ success: false, message: "Username already exists" });
   }
+});
 
-  const chatBox = document.getElementById("chatBox");
-  const chatForm = document.getElementById("chatForm");
-  const chatInput = document.getElementById("chatInput");
-  const userListEl = document.getElementById("userList");
+// --- Admin messages endpoint ---
+app.get("/admin/messages", async (req, res) => {
+  const user = req.query.user;
+  if (user !== "DEV") return res.status(403).json([]);
+  const rows = await db.all("SELECT * FROM messages ORDER BY timestamp ASC");
+  res.json(rows);
+});
 
-  // --- Helper to append message ---
-  const appendMessage = (text, color, italic = false) => {
-    const p = document.createElement("p");
-    p.innerHTML = text;
-    if (color) p.style.color = color;
-    if (italic) p.style.fontStyle = "italic";
-    chatBox.appendChild(p);
-    chatBox.scrollTop = chatBox.scrollHeight;
-  };
+// --- Socket.IO ---
+let onlineUsers = new Map(); // username -> socket
+let messages = [];
+let mutedUsers = {}; // username: timestamp
+const admins = ["DEV"];
 
-  // --- Socket events ---
-  socket.on("chat", data => {
-    appendMessage(`<strong>${data.user}:</strong> ${data.message}`);
+io.use((socket, next) => {
+  const { username } = socket.handshake.auth;
+  if (!username) return next(new Error("Invalid username"));
+  socket.username = username;
+  next();
+});
+
+io.on("connection", socket => {
+  const username = socket.username;
+  onlineUsers.set(username, socket);
+
+  io.emit("system", `${username} joined the chat`);
+  io.emit("userList", Array.from(onlineUsers.keys()));
+  messages.forEach(msg => socket.emit("chat", msg));
+
+  socket.on("chat", async msg => {
+    if (mutedUsers[username] && Date.now() < mutedUsers[username]) {
+      socket.emit("muted", { until: mutedUsers[username], reason: "You have been muted" });
+      return;
+    }
+
+    // Admin commands
+    if (admins.includes(username) && msg.startsWith("/")) {
+      const parts = msg.split(" ");
+      const command = parts[0].toLowerCase();
+      switch (command) {
+        case "/kick":
+          if (onlineUsers.has(parts[1])) onlineUsers.get(parts[1]).disconnect(true);
+          io.emit("system", `${parts[1]} was kicked by DEV`);
+          return;
+        case "/clear":
+          messages = [];
+          io.emit("system", "DEV cleared the chat");
+          io.emit("clearChat");
+          return;
+        case "/mute":
+          mutedUsers[parts[1]] = Date.now() + (parseInt(parts[2]) || 60) * 1000;
+          io.emit("system", `${parts[1]} was muted`);
+          return;
+        case "/close":
+          if (onlineUsers.has(parts[1])) onlineUsers.get(parts[1]).emit("forceClose");
+          io.emit("system", `DEV closed ${parts[1]}'s chat`);
+          return;
+      }
+    }
+
+    // Whispers
+    if (msg.startsWith("/whisper ") || msg.startsWith("/r ")) {
+      const [cmd, targetUser, ...rest] = msg.split(" ");
+      const messageContent = rest.join(" ");
+      if (onlineUsers.has(targetUser)) {
+        onlineUsers.get(targetUser).emit("whisper", { from: username, message: messageContent });
+        socket.emit("whisper", { from: username, message: messageContent });
+      } else socket.emit("system", `${targetUser} is not online`);
+      return;
+    }
+
+    // Normal message
+    const messageObj = { user: username, message: msg };
+    messages.push(messageObj);
+    const ip = socket.handshake.address;
+    await db.run("INSERT INTO messages (username, ip, message, timestamp) VALUES (?, ?, ?, ?)", username, ip, msg, Date.now());
+    io.emit("chat", messageObj);
   });
 
-  socket.on("whisper", ({ from, message }) => {
-    appendMessage(`<em>(Whisper) ${from}:</em> ${message}`, "#ffb86c");
+  socket.on("disconnect", () => {
+    onlineUsers.delete(username);
+    io.emit("system", `${username} left the chat`);
+    io.emit("userList", Array.from(onlineUsers.keys()));
   });
+});
 
-  socket.on("system", msg => {
-    appendMessage(msg, "#999", true);
-  });
-
-  socket.on("userList", users => {
-    userListEl.innerHTML = "";
-    users.forEach(u => {
-      const li = document.createElement("li");
-      li.textContent = u;
-      userListEl.appendChild(li);
-    });
-  });
-
-  socket.on("muted", info => {
-    const untilTime = new Date(info.until).toLocaleTimeString();
-    alert(`⛔ ${info.reason}. You are muted until ${untilTime}.`);
-  });
-
-  socket.on("forceClose", () => {
-    alert("Admin closed your chat. Closing window...");
-    window.close();
-  });
-
-  socket.on("clearChat", () => {
-    chatBox.innerHTML = "";
-  });
-
-  // --- Send chat ---
-  chatForm.addEventListener("submit", e => {
-    e.preventDefault();
-    const message = chatInput.value.trim();
-    if (!message) return;
-
-    // Send message to server
-    socket.emit("chat", message);
-    chatInput.value = "";
-  });
-}
+// --- Start server ---
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
