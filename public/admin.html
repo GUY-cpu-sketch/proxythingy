@@ -3,18 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin Panel</title>
+<title> </title>
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
 <div class="container admin-container">
   <h1>Admin Panel</h1>
   <button id="refresh">Refresh Messages</button>
-  <button id="downloadDB">Download DB</button>
+  <button id="download">Download DB</button>
   <table id="messagesTable">
     <thead>
       <tr>
-        <th style="width:150px;">Time</th>
+        <th style="width:200px;">Time</th>
         <th style="width:150px;">User</th>
         <th style="width:150px;">IP</th>
         <th style="width:400px;">Message</th>
@@ -23,38 +23,36 @@
     <tbody></tbody>
   </table>
 </div>
+
 <script type="module">
-  const tableBody = document.querySelector("#messagesTable tbody");
-  const refreshBtn = document.getElementById("refresh");
-  const downloadBtn = document.getElementById("downloadDB");
-  const user = prompt("Enter admin username:");
+const tableBody = document.querySelector("#messagesTable tbody");
+const refreshBtn = document.getElementById("refresh");
+const downloadBtn = document.getElementById("download");
+const user = prompt("Enter admin username:");
 
-  async function loadMessages() {
-    tableBody.innerHTML = "";
-    const res = await fetch(`/admin/messages?user=${user}`);
-    const data = await res.json();
-    data.forEach(m => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${new Date(m.timestamp).toLocaleString()}</td>
-                      <td>${m.user}</td>
-                      <td>${m.ip}</td>
-                      <td>${m.message}</td>`;
-      tableBody.appendChild(tr);
-    });
-  }
-
-  refreshBtn.addEventListener("click", loadMessages);
-  downloadBtn.addEventListener("click", () => {
-    window.location.href = `/admin/download-db?user=${user}`;
+async function loadMessages(){
+  tableBody.innerHTML = "";
+  const res = await fetch(`/admin/messages?user=${user}`);
+  const data = await res.json();
+  data.forEach(m=>{
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${new Date(m.timestamp).toLocaleString()}</td>
+                    <td>${m.user}</td>
+                    <td>${m.ip}</td>
+                    <td>${m.message}</td>`;
+    tableBody.appendChild(tr);
   });
+}
 
-  loadMessages();
+refreshBtn.addEventListener("click", loadMessages);
 
-  import { io } from "https://cdn.socket.io/4.7.2/socket.io.esm.min.js";
-  const socket = io({ auth: { username: user } });
-  socket.on("chat", () => loadMessages());
-  socket.on("whisper", () => loadMessages());
-  socket.on("system", () => loadMessages());
+downloadBtn.addEventListener("click", ()=>{
+  window.location.href = `/admin/download-db?user=${user}`;
+});
+
+// Poll for live updates every 2s
+setInterval(loadMessages,2000);
+loadMessages();
 </script>
 </body>
 </html>
