@@ -3,41 +3,38 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title> </title>
+<title>Admin Panel</title>
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
 <div class="container admin-container">
   <h1>Admin Panel</h1>
   <button id="refresh">Refresh Messages</button>
-  <button id="download">Download DB</button>
   <table id="messagesTable">
     <thead>
       <tr>
-        <th style="width:200px;">Time</th>
-        <th style="width:150px;">User</th>
-        <th style="width:150px;">IP</th>
-        <th style="width:400px;">Message</th>
+        <th>Time</th>
+        <th>User</th>
+        <th>IP</th>
+        <th>Message</th>
       </tr>
     </thead>
     <tbody></tbody>
   </table>
 </div>
-
 <script type="module">
 const tableBody = document.querySelector("#messagesTable tbody");
 const refreshBtn = document.getElementById("refresh");
-const downloadBtn = document.getElementById("download");
 const user = prompt("Enter admin username:");
 
-async function loadMessages(){
+async function loadMessages() {
   tableBody.innerHTML = "";
   const res = await fetch(`/admin/messages?user=${user}`);
   const data = await res.json();
-  data.forEach(m=>{
+  data.forEach(m => {
     const tr = document.createElement("tr");
     tr.innerHTML = `<td>${new Date(m.timestamp).toLocaleString()}</td>
-                    <td>${m.user}</td>
+                    <td>${m.username}</td>
                     <td>${m.ip}</td>
                     <td>${m.message}</td>`;
     tableBody.appendChild(tr);
@@ -45,13 +42,6 @@ async function loadMessages(){
 }
 
 refreshBtn.addEventListener("click", loadMessages);
-
-downloadBtn.addEventListener("click", ()=>{
-  window.location.href = `/admin/download-db?user=${user}`;
-});
-
-// Poll for live updates every 2s
-setInterval(loadMessages,2000);
 loadMessages();
 </script>
 </body>
