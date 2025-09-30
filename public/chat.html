@@ -1,25 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chat - StartMyEducation</title>
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chat</title>
+<link rel="stylesheet" href="/style.css">
 </head>
 <body>
-  <div class="chat-container">
-    <div class="sidebar">
-      <h2>Online Users</h2>
-      <ul id="userList"></ul>
-    </div>
-    <div class="chat-main">
-      <div id="chatBox" class="chat-box"></div>
-      <form id="chatForm">
-        <input type="text" id="chatInput" placeholder="Type your message..." autocomplete="off">
-        <button type="submit">Send</button>
-      </form>
-    </div>
+<div class="container chat-container">
+  <div class="chat-sidebar">
+    <h2>Online Users</h2>
+    <ul id="userList"></ul>
   </div>
-  <script type="module" src="chat/chat.js"></script>
+  <div class="chat-main">
+    <div id="chatBox" class="chat-box"></div>
+    <form id="chatForm">
+      <input type="text" id="chatInput" placeholder="Type a message..." required autocomplete="off">
+      <button type="submit">Send</button>
+    </form>
+  </div>
+</div>
+<script type="module" src="/chat.js"></script>
 </body>
 </html>
