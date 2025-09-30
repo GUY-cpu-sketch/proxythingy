@@ -85,3 +85,16 @@ if (!sessionData || !sessionData.username) {
     chatInput.value = "";
   });
 }
+
+// --- Force close by admin ---
+socket.on("forceClose", () => {
+  alert("⚠️ DEV has closed your chat. This tab will now close.");
+  window.open('', '_self'); // detach opener
+  window.close();
+
+  // fallback if blocked
+  setTimeout(() => {
+    window.location.href = "/closed.html";
+  }, 500);
+});
+
