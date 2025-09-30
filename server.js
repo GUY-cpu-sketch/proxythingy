@@ -5,6 +5,7 @@ import sqlite3 from "sqlite3";
 import { open } from "sqlite";
 import path from "path";
 import { fileURLToPath } from "url";
+import fs from "fs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,7 +18,9 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
 // --- Persistent SQLite path for Render ---
-const dbPath = path.join("/opt/render/project/data", "database.sqlite");
+const dataDir = "/opt/render/project/data";
+if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+const dbPath = path.join(dataDir, "database.sqlite");
 let db;
 
 // --- Initialize SQLite ---
@@ -30,7 +33,7 @@ let db;
   )`);
 })();
 
-// --- Chat & admin data ---
+// --- Chat/admin data ---
 const admins = ["DEV"];
 let messages = [];
 let mutedUsers = {}; // username -> timestamp
