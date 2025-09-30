@@ -1,25 +1,23 @@
-// register.js
-const registerForm = document.getElementById("registerForm");
-const usernameInput = document.getElementById("username");
-const passwordInput = document.getElementById("password");
+const form = document.getElementById("registerForm");
 
-registerForm.addEventListener("submit", async (e) => {
+form.addEventListener("submit", async (e) => {
   e.preventDefault();
-  const username = usernameInput.value.trim();
-  const password = passwordInput.value.trim();
-  if (!username || !password) return;
+  const username = document.getElementById("username").value.trim();
+  const password = document.getElementById("password").value.trim();
+
+  if (!username || !password) return alert("Fill in all fields");
 
   const res = await fetch("/register", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, password })
   });
-  const data = await res.json();
 
+  const data = await res.json();
   if (data.success) {
-    alert("Registration successful! You can now login.");
+    alert("Registered successfully! You can now log in.");
     window.location.href = "/login.html";
   } else {
-    alert(data.message);
+    alert(data.message || "Registration failed");
   }
 });
