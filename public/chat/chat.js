@@ -1,11 +1,9 @@
-import { io } from "https://cdn.socket.io/4.7.2/socket.io.esm.min.js";
-
 const chatBox = document.getElementById("chatBox");
 const chatForm = document.getElementById("chatForm");
 const chatInput = document.getElementById("chatInput");
 const userListEl = document.getElementById("userList");
 
-// --- Load session ---
+// Load session
 let sessionData = JSON.parse(localStorage.getItem("sessionData"));
 if (!sessionData || !sessionData.username) {
   alert("Please login first.");
@@ -14,15 +12,15 @@ if (!sessionData || !sessionData.username) {
   const username = sessionData.username;
   const socket = io({ auth: { username } });
 
-  // --- Normal chat messages ---
-  socket.on("chat", msg => {
+  // Display chat message
+  socket.on("chat", data => {
     const p = document.createElement("p");
-    p.innerHTML = `<strong>${msg.username}:</strong> ${msg.message}`;
+    p.innerHTML = `<strong>${data.user}:</strong> ${data.message}`;
     chatBox.appendChild(p);
     chatBox.scrollTop = chatBox.scrollHeight;
   });
 
-  // --- Whisper messages ---
+  // Display whispers
   socket.on("whisper", ({ from, message }) => {
     const p = document.createElement("p");
     p.style.color = "purple";
@@ -31,7 +29,7 @@ if (!sessionData || !sessionData.username) {
     chatBox.scrollTop = chatBox.scrollHeight;
   });
 
-  // --- System messages ---
+  // Display system messages
   socket.on("system", msg => {
     const p = document.createElement("p");
     p.style.fontStyle = "italic";
@@ -41,19 +39,7 @@ if (!sessionData || !sessionData.username) {
     chatBox.scrollTop = chatBox.scrollHeight;
   });
 
-  // --- Forced close (from /close command) ---
-  socket.on("forceClose", () => {
-    alert("An admin has closed your chat tab.");
-    window.close();
-  });
-
-  // --- Muted warning ---
-  socket.on("muted", info => {
-    const untilTime = new Date(info.until).toLocaleTimeString();
-    alert(`⛔ ${info.reason}. You are muted until ${untilTime}.`);
-  });
-
-  // --- User list ---
+  // Update online users
   socket.on("userList", users => {
     userListEl.innerHTML = "";
     users.forEach(u => {
@@ -63,13 +49,19 @@ if (!sessionData || !sessionData.username) {
     });
   });
 
-  // --- Send chat ---
+  // Muted alert
+  socket.on("muted", info => {
+    const untilTime = new Date(info.until).toLocaleTimeString();
+    alert(`⛔ ${info.reason}. You are muted until ${untilTime}.`);
+  });
+
+  // Submit chat form
   chatForm.addEventListener("submit", e => {
     e.preventDefault();
     const message = chatInput.value.trim();
     if (!message) return;
 
-    // Send to server
+    // Emit chat message to server
     socket.emit("chat", message);
     chatInput.value = "";
   });
